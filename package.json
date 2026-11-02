@@ -7,7 +7,10 @@
   "license": "MIT",
   "author": "onmax",
   "homepage": "https://github.com/onmax/vue-router-scroll-restoration#readme",
-  "repository": "onmax/vue-router-scroll-restoration",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/onmax/vue-router-scroll-restoration.git"
+  },
   "bugs": "https://github.com/onmax/vue-router-scroll-restoration/issues",
   "keywords": [
     "vue",
@@ -72,5 +75,9 @@
     "vue": "catalog:nuxt",
     "vue-router": "catalog:nuxt",
     "vue-tsc": "catalog:build"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }
