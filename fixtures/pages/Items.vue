@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import type { Component } from 'vue'
+import { computed, inject } from 'vue'
+import { RouterView, useRoute } from 'vue-router'
 import FixtureRows from '../FixtureRows.vue'
 
-// Like Portal's OverviewWithChild: the overview stays mounted but hidden while a child shows
+// Like Portal's OverviewWithChild: the overview stays mounted but hidden while a child shows.
+// Nuxt renders nested pages with <NuxtPage>, which the Nuxt playground provides.
+const ChildView = inject<Component>('childView', RouterView)
 const route = useRoute()
 const isChild = computed(() => route.matched.length > 1)
 </script>
@@ -22,6 +25,6 @@ const isChild = computed(() => route.matched.length > 1)
         :to="index => `/items/${index}`"
       />
     </div>
-    <RouterView />
+    <ChildView />
   </div>
 </template>

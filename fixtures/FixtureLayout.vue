@@ -38,6 +38,10 @@
         data-testid="nav-keep"
       >Keep</RouterLink>
       <RouterLink
+        to="/keep-function"
+        data-testid="nav-keep-function"
+      >Keep function</RouterLink>
+      <RouterLink
         to="/items"
         data-testid="nav-items"
       >Items</RouterLink>

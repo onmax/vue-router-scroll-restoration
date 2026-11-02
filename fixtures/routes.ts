@@ -18,6 +18,7 @@ export const routes: FixtureRoute[] = [
   { path: '/hash', page: 'Hash' },
   { path: '/inner', page: 'Inner' },
   { path: '/keep', page: 'Keep', meta: { scrollToTop: false } },
+  { path: '/keep-function', page: 'KeepFunction', meta: { scrollToTop: () => false } },
   { path: '/blocked', page: 'Other', meta: { blocked: true } },
   { path: '/redirect', redirect: '/other' },
   { path: '/items', page: 'Items', meta: { scrollKey: 'items' }, children: [{ path: ':id', page: 'Item' }] },
