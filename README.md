@@ -46,7 +46,6 @@ setupScrollRestoration(router, {
 | `containers` | `['window']` | Selectors of the elements that scroll. `'window'` is the document. |
 | `settle` | `3000` | Keep re-applying a restored position while content loads, for at most this many milliseconds. `false` restores once. |
 | `ready` | `nextTick` | Vue Router only: resolves when the new page is on screen. |
-| `storageKey` | `'vue-router-scroll-restoration'` | `sessionStorage` key for positions kept across reloads. |
 
 Elements with `data-scroll-restoration-id="<id>"` are tracked without configuration, for containers inside a page:
 
@@ -66,3 +65,30 @@ definePageMeta({
 ```
 
 `scrollKey` is read from the matched leaf route only, so an overview's key isn't inherited by its child routes. Use it for an overview whose in-page back link should return to where you were. With plain Vue Router, put both in the route's `meta`.
+
+## Size and timings
+
+Minified and gzipped with esbuild, `vue` and `vue-router` external:
+
+| Entry | min | min+gzip |
+| --- | --- | --- |
+| `vue-router-scroll-restoration` | 3.0 kB | 1.5 kB |
+| `vue-router-scroll-restoration/core` | 1.8 kB | 1.0 kB |
+| `vue-router-scroll-restoration/nuxt` (client plugin) | 3.3 kB | 1.7 kB |
+
+Medians of 15 runs in Chromium against the production playgrounds:
+
+| | Vue Router | Nuxt |
+| --- | --- | --- |
+| Back restores the position, after `popstate` | 0.7 ms | 28 ms, after `page:loading:end` and a frame, as Nuxt's own `scrollBehavior` |
+| Back to a table that renders 1.5 s later | 1505 ms | 1534 ms |
+| Script time per navigation, with / without the package | 0.29 / 0.22 ms | |
+
+## Compared
+
+| | Inner containers | Back and Forward per history entry | Waits for late content | Nuxt | min+gzip |
+| --- | --- | --- | --- | --- | --- |
+| this package | yes | yes | yes, until it holds or `settle` ms | module | 1.5 kB |
+| [`vue-router/experimental`](https://github.com/vuejs/router/blob/main/packages/docs/experimental/scroll-restoration.md) (5.4) | per component, with `capture` and `restore` | keyed by path and hash | no, restores once | no | +0.95 kB in `vue-router` |
+| [`vue-router-better-scroller`](https://github.com/antfu/vue-router-better-scroller) | yes | saves only when leaving by link, so Forward lands at the top | no, restores once | no | 0.9 kB |
+| [`nuxt-scroll-restoration`](https://github.com/shimizukawa/nuxt-scroll-restoration) | window only | yes, by patching `history.pushState` | retries for 3 s | Nuxt 3 module | 2.2 kB |
