@@ -82,8 +82,7 @@ export function restoreScroll(
   const done = new AbortController()
   const stop = () => done.abort()
   signal?.addEventListener('abort', stop, { signal: done.signal })
-  for (const type of USER_INPUT)
-    window.addEventListener(type, stop, { capture: true, passive: true, signal: done.signal })
+  abortOnInput(done)
 
   const start = performance.now()
   let heldSince = start
@@ -109,6 +108,12 @@ export function restoreScroll(
     requestAnimationFrame(frame)
   }
   requestAnimationFrame(frame)
+}
+
+/** Aborts `controller` on the first wheel, touch, pointer or key input. */
+export function abortOnInput(controller: AbortController): void {
+  for (const type of USER_INPUT)
+    window.addEventListener(type, () => controller.abort(), { capture: true, passive: true, signal: controller.signal })
 }
 
 function reached(element: Element, { left, top }: ScrollPosition) {

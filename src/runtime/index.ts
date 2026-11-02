@@ -1,7 +1,7 @@
 import type { RouteLocationNormalized, RouteLocationNormalizedLoaded, Router } from 'vue-router'
 import { nextTick } from 'vue'
 import { START_LOCATION } from 'vue-router'
-import { captureScroll, createScrollStore, findContainers, restoreScroll, WINDOW } from './core'
+import { abortOnInput, captureScroll, createScrollStore, findContainers, restoreScroll, WINDOW } from './core'
 
 export type { ScrollPosition, ScrollSnapshot } from './core'
 
@@ -86,6 +86,8 @@ export function setupScrollRestoration(router: Router, options: ScrollRestoratio
       return
 
     const controller = restoring = new AbortController()
+    // also while waiting for the page, which in Nuxt can take a while
+    abortOnInput(controller)
     ready(to, from).then(() => {
       if (!controller.signal.aborted)
         restoreScroll(findContainers(containers), snapshot, to.hash, { signal: controller.signal, settle })
@@ -95,10 +97,9 @@ export function setupScrollRestoration(router: Router, options: ScrollRestoratio
   routerHistory.listen((_to, _from, info) => traversing = info.type === 'pop')
   // the old page is still on screen
   router.beforeEach((to, from) => {
-    if (samePlace(to, from))
-      return
-    restoring?.abort()
     capture()
+    if (!samePlace(to, from))
+      restoring?.abort()
   })
   router.afterEach((to, from, failure) => {
     const traverse = traversing

@@ -180,6 +180,20 @@ test('6. user input cancels a pending restore', async ({ page }) => {
   }
 })
 
+test('6. user input while the page is still loading cancels its restore', async ({ page }) => {
+  await open(page, '/async', 'Async')
+  await scrollTo(page, 2000)
+  await navigate(page, 'other', 'Other')
+  await page.goBack()
+  // Async waits 400 ms in setup, so this lands before it renders. A press, not a wheel,
+  // because Chromium animates wheel scrolling past the position the test sets
+  await page.locator(root).click({ position: { x: 200, y: 200 } })
+  await page.locator(root).evaluate(el => el.scrollTop = 300)
+  await expect(page.locator(title)).toHaveText('Async')
+  await page.waitForTimeout(500)
+  await expectTop(page, 300)
+})
+
 test('7. a new navigation cancels a pending restore', async ({ page }) => {
   await beginLateRestore(page)
   await expect(page.getByTestId('late-count')).toHaveText('40')
@@ -204,6 +218,18 @@ test('8. query-only filter changes keep position', async ({ page }) => {
   await expect(page).toHaveURL(/\/filters\?status=b$/)
   await expectTop(page, saved)
   await page.getByTestId('filter-a').click()
+  await expect(page.locator(title)).toHaveText('Filters: a')
+  await expectTop(page, saved)
+})
+
+test('8. the entry a query change leaves keeps its own position', async ({ page }) => {
+  await open(page, '/filters?status=a', 'Filters: a')
+  await page.getByTestId('filter-b').scrollIntoViewIfNeeded()
+  const saved = await page.locator(root).evaluate(el => el.scrollTop)
+  await page.getByTestId('filter-b').click()
+  await expect(page.locator(title)).toHaveText('Filters: b')
+  await navigate(page, 'other', 'Other')
+  await page.evaluate(() => history.go(-2))
   await expect(page.locator(title)).toHaveText('Filters: a')
   await expectTop(page, saved)
 })
