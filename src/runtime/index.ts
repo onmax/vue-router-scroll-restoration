@@ -70,7 +70,9 @@ export function setupScrollRestoration(router: Router, options: ScrollRestoratio
   }
 
   const navigated = (to: RouteLocationNormalized, from: RouteLocationNormalizedLoaded, traverse: boolean) => {
-    const reload = from === START_LOCATION
+    const first = from === START_LOCATION
+    // A fresh load after Back takes the index of the entry it pruned, whose snapshot isn't its own
+    const reload = first && ['reload', 'back_forward'].includes((performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.type ?? '')
     const scrollKey = to.matched.at(-1)?.meta.scrollKey
     const shared = typeof scrollKey === 'function' ? scrollKey(to) : scrollKey
     currentKey = shared ? `key:${shared}` : `entry:${entry()}`
@@ -84,7 +86,7 @@ export function setupScrollRestoration(router: Router, options: ScrollRestoratio
     // a new entry has nothing saved; a replaced one holds the page it replaced
     const snapshot = currentKey.startsWith('key:') || traverse || reload ? store.get(currentKey) : undefined
     // the browser already shows a freshly loaded page at the top
-    if (reload && !snapshot && !to.hash)
+    if (first && !snapshot && !to.hash)
       return
 
     const controller = restoring = new AbortController()

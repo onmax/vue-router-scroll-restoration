@@ -54,7 +54,7 @@ export default defineNuxtConfig({
 </template>
 ```
 
-The module replaces Nuxt's `scrollBehavior`. It restores after `page:loading:end` and the page transition, the same moment Nuxt's own behaviour waits for. If your app has an `app/router.options.ts` that sets `scrollBehavior`, yours still wins.
+The module replaces Nuxt's `scrollBehavior`. It restores after `page:loading:end` and the page transition, the same moment Nuxt's own behaviour waits for. If your app has an `app/router.options.ts` that sets `scrollBehavior`, yours wins and the module does nothing.
 
 Render nested pages with `<NuxtPage>`. It fires `page:loading:end`; a plain `<RouterView>` doesn't, so the restore would run too early.
 
@@ -89,6 +89,32 @@ setupScrollRestoration(router, {
 | `containers` | `['window']` | Selectors of the elements that scroll. `'window'` is the document. |
 | `settle` | `3000` | Keep re-applying a restored position while content loads, for at most this many milliseconds. `false` restores once. |
 | `ready` | `nextTick` | Vue Router only. Resolves when the new page is on screen; the restore waits for it. |
+
+### Page transitions
+
+With Vue Router alone, the default `ready` resolves on the next tick, while an out-in `<Transition>` still shows the old page. Wait for the new page instead, with a fallback for navigations that reuse the component and run no transition:
+
+```ts
+let entered = () => {}
+setupScrollRestoration(router, {
+  containers: ['window', '[data-scroll-root]'],
+  ready: () => new Promise((resolve) => {
+    entered = resolve
+    setTimeout(resolve, 1000)
+  }),
+})
+export const onPageEnter = () => entered()
+```
+
+```vue
+<RouterView v-slot="{ Component }">
+  <Transition mode="out-in" @enter="onPageEnter">
+    <component :is="Component" />
+  </Transition>
+</RouterView>
+```
+
+Nuxt needs none of this: the module waits for the page transition itself.
 
 ### Containers inside a page
 
@@ -156,7 +182,7 @@ Vue Router's and Nuxt's default `scrollBehavior` handle `window` only.
 | [`vue-router-better-scroller`](https://github.com/antfu/vue-router-better-scroller) | yes | saves only when leaving by link, so Forward lands at the top | no, restores once after `nextTick` | no | 0.9 kB |
 | [`nuxt-scroll-restoration`](https://github.com/shimizukawa/nuxt-scroll-restoration) | window only | yes, by patching `history.pushState` | retries for 3 s | Nuxt 3 module | 2.2 kB |
 
-[SPEC.md](./SPEC.md) has the full research, the 16 scenarios the tests cover, and what isn't built yet.
+[SPEC.md](./SPEC.md) has the full research, the 17 scenarios the tests cover, and what isn't built yet.
 
 ## Not supported
 
@@ -173,7 +199,7 @@ pnpm dev           # Nuxt playground on :4310
 pnpm dev:vue       # Vue Router playground on :4311
 pnpm lint
 pnpm typecheck
-pnpm test:e2e      # the 16 scenarios on both playgrounds, Chromium and WebKit
+pnpm test:e2e      # the 17 scenarios on both playgrounds, Chromium and WebKit
 ```
 
 ## Release

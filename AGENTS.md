@@ -1,6 +1,6 @@
 # vue-router-scroll-restoration
 
-Scroll restoration for Vue Router and Nuxt on any scroll container. [SPEC.md](./SPEC.md) is the source of truth for behaviour: its 16 numbered scenarios are the tests in `test/e2e/scenarios.spec.ts`.
+Scroll restoration for Vue Router and Nuxt on any scroll container. [SPEC.md](./SPEC.md) is the source of truth for behaviour: its 17 numbered scenarios are the tests in `test/e2e/scenarios.spec.ts`.
 
 ## Layout
 
