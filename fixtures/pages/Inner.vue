@@ -19,5 +19,5 @@ import FixtureRows from '../FixtureRows.vue'
 </template>
 
 <style>
-.inner { height: 300px; overflow-y: auto; border: 1px solid #999; }
+.inner { height: 300px; margin: 0 20px 20px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; }
 </style>

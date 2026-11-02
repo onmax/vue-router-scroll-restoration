@@ -31,5 +31,5 @@
 </template>
 
 <style>
-.section { height: 600px; scroll-margin-top: 40px; border-top: 2px solid #999; }
+.section { height: 600px; box-sizing: border-box; padding: 16px 20px; scroll-margin-top: 40px; border-top: 1px solid var(--line); font-weight: 500; }
 </style>
