@@ -171,7 +171,10 @@ function read(storageKey: string): [string, ScrollSnapshot][] {
 }
 
 function isStoredEntry(value: unknown): value is [string, ScrollSnapshot] {
-  if (!Array.isArray(value) || value.length !== 2 || typeof value[0] !== 'string' || typeof value[1] !== 'object' || !value[1])
-    return false
-  return Object.values(value[1]).every(position => typeof position?.left === 'number' && typeof position.top === 'number')
+  return Array.isArray(value) && value.length === 2 && typeof value[0] === 'string' && isSnapshot(value[1])
+}
+
+function isSnapshot(value: unknown): value is ScrollSnapshot {
+  return typeof value === 'object' && value !== null
+    && Object.values(value as Record<string, Partial<ScrollPosition> | null>).every(position => typeof position?.left === 'number' && typeof position.top === 'number')
 }
