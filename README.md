@@ -2,7 +2,11 @@
 
 Scroll restoration for Vue Router and Nuxt on any scroll container, not only `window`.
 
-Vue Router saves and restores only the window's scroll. Dashboard layouts usually scroll an inner element, so Back lands at the top. This package saves every container's position per history entry and restores it on Back, Forward and reload, waiting for the page to render and re-applying the position while late content loads.
+Vue Router saves and restores only the window's scroll. Dashboard layouts usually scroll an inner element, so a new page opens wherever the last one was scrolled, and Back lands at the top. This package saves every container's position per history entry and restores it on Back, Forward and reload, waiting for the page to render and re-applying the position while late content loads.
+
+![Plain Vue Router opens the next page halfway down and loses your place on Back; with the package the page opens at the top and Back returns to row 30](./.github/assets/back.gif)
+
+![When the table loads after the page shows, plain Vue Router lands at the top; the package waits for the rows and lands on row 60](./.github/assets/late.gif)
 
 - New pages start at the top, or at the `#hash` target, inside the container.
 - Back and Forward restore each visit's position, also after a reload.

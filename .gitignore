@@ -9,3 +9,4 @@ playwright-report
 .DS_Store
 .lab
 playground-vue/dist
+playground-vue/dist-without

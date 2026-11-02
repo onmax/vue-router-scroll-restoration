@@ -17,6 +17,8 @@ function toRecord({ path, page, redirect, meta, children }: FixtureRoute): Route
 
 const router = createRouter({ history: createWebHistory(), routes: routes.map(toRecord) })
 router.beforeEach(to => !to.meta.blocked)
-setupScrollRestoration(router, { containers: ['window', '[data-scroll-root]'] })
+// `vite build --mode without-restoration` shows plain Vue Router, for the README's comparisons
+if (import.meta.env.MODE !== 'without-restoration')
+  setupScrollRestoration(router, { containers: ['window', '[data-scroll-root]'] })
 
 createApp(App).use(router).mount('#app')
