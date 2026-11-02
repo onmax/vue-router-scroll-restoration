@@ -1,14 +1,16 @@
-<h1>
+<p align="center">
   <img src="./.github/assets/banner.svg" alt="vue-router-scroll-restoration: Back lands where you left off, in any scroll container" width="100%">
-</h1>
+</p>
 
-[![npm](https://comark-ui.onmax.me/badge.svg?source=npm-version&package=vue-router-scroll-restoration&label=npm&icon=npm)](https://www.npmjs.com/package/vue-router-scroll-restoration)
-[![license: MIT](https://comark-ui.onmax.me/badge.svg?label=license&value=MIT)](./LICENSE)
-[![CI](https://comark-ui.onmax.me/badge.svg?source=github-actions&repository=onmax%2Fvue-router-scroll-restoration&workflow=ci.yml&icon=github)](https://github.com/onmax/vue-router-scroll-restoration/actions/workflows/ci.yml)
+<h1 align="center">Vue Router Scroll Restoration</h1>
 
-Scroll restoration for Vue Router and Nuxt that works on any scroll container, not only `window`.
+<p align="center">Scroll restoration for Vue Router and Nuxt on any scroll container, not only <code>window</code>.</p>
 
-## The problem
+<p align="center">
+  <a href="https://npmx.dev/package/vue-router-scroll-restoration"><img src="https://comark-ui.onmax.me/badge.svg?source=npm-version&amp;package=vue-router-scroll-restoration&amp;icon=npm" alt="vue-router-scroll-restoration version"></a>
+  <a href="https://npmx.dev/package/vue-router-scroll-restoration"><img src="https://comark-ui.onmax.me/badge.svg?source=npm-downloads&amp;package=vue-router-scroll-restoration&amp;period=month&amp;icon=npm" alt="vue-router-scroll-restoration downloads"></a>
+  <a href="https://npmx.dev/package/vue-router-scroll-restoration"><img src="https://comark-ui.onmax.me/badge.svg?label=license&amp;value=MIT" alt="License"></a>
+</p>
 
 Vue Router saves and restores the window's scroll position, and nothing else ([vuejs/vue-router#1187](https://github.com/vuejs/vue-router/issues/1187), open since 2017). Most dashboards don't scroll the window. They scroll a `<div>` next to the sidebar. So in a Vue or Nuxt dashboard:
 
@@ -22,24 +24,13 @@ This package saves the position of every container you name, per history entry, 
 
 ![When the table loads after the page shows, plain Vue Router lands at the top; the package waits for the rows and lands on row 60](./.github/assets/late.gif)
 
-## What you get
-
-- A new page starts at the top of the container, or at the `#hash` target inside it.
-- Back and Forward restore the position each visit had, also after a reload.
-- A navigation that only changes the query, like a filter, keeps the position.
-- The position is re-applied while content loads, for up to 3 seconds.
-- Scrolling, touching, clicking or typing stops a pending restore, and so does a new navigation.
-- The window and any number of elements are tracked side by side.
-
-## Install
+## Quick start (Nuxt)
 
 ```sh
 pnpm add vue-router-scroll-restoration
 ```
 
 It needs `vue` 3.5 or newer and `vue-router` 4.2 or newer, including 5. The Nuxt module needs Nuxt 4.
-
-## Nuxt
 
 ```ts
 // nuxt.config.ts
@@ -67,7 +58,7 @@ The module replaces Nuxt's `scrollBehavior`. It restores after `page:loading:end
 
 Render nested pages with `<NuxtPage>`. It fires `page:loading:end`; a plain `<RouterView>` doesn't, so the restore would run too early.
 
-## Vue Router
+## Vue without Nuxt
 
 ```ts
 import { createRouter, createWebHistory } from 'vue-router'
@@ -81,6 +72,15 @@ setupScrollRestoration(router, {
 ```
 
 `setupScrollRestoration` replaces the router's `scrollBehavior`. You can call it before or after the first navigation.
+
+## Features
+
+- A new page starts at the top of the container, or at the `#hash` target inside it.
+- Back and Forward restore the position each visit had, also after a reload.
+- A navigation that only changes the query, like a filter, keeps the position.
+- The position is re-applied while content loads, for up to 3 seconds.
+- Scrolling, touching, clicking or typing stops a pending restore, and so does a new navigation.
+- The window and any number of elements are tracked side by side.
 
 ## Options
 
@@ -176,8 +176,10 @@ pnpm typecheck
 pnpm test:e2e      # the 16 scenarios on both playgrounds, Chromium and WebKit
 ```
 
-Releases go through [uppt](https://github.com/danielroe/uppt): conventional commits on `main` open a release PR, and merging it publishes to npm with provenance.
+## Release
+
+Releases are cut by [uppt](https://github.com/danielroe/uppt) from [conventional commits](https://www.conventionalcommits.org). Every push to `main` opens or updates a draft release PR with the next version and changelog. Merging it tags the release and publishes to npm with provenance.
 
 ## License
 
-MIT, by [@onmax](https://github.com/onmax).
+[MIT](./LICENSE)
