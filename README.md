@@ -80,7 +80,7 @@ setupScrollRestoration(router, {
 })
 ```
 
-`setupScrollRestoration` replaces the router's `scrollBehavior` and returns a function that removes it again. You can call it before or after the first navigation.
+`setupScrollRestoration` replaces the router's `scrollBehavior`. You can call it before or after the first navigation.
 
 ## Options
 
