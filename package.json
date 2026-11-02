@@ -1,0 +1,64 @@
+{
+  "name": "vue-router-scroll-restoration",
+  "type": "module",
+  "version": "0.0.0",
+  "packageManager": "pnpm@12.15.0",
+  "description": "Scroll restoration for Vue Router and Nuxt on any scroll container",
+  "license": "MIT",
+  "repository": "onmax/vue-router-scroll-restoration",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js"
+    },
+    "./core": {
+      "types": "./dist/runtime/core.d.ts",
+      "import": "./dist/runtime/core.js"
+    },
+    "./nuxt": {
+      "types": "./dist/types.d.mts",
+      "import": "./dist/module.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "nuxt-module-build prepare && nuxt-module-build build",
+    "prepack": "pnpm build",
+    "dev": "nuxi dev playground --port 4310",
+    "dev:vue": "vite playground-vue --port 4311",
+    "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxi prepare playground",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "vue-tsc --noEmit && vue-tsc --noEmit -p playground && vue-tsc --noEmit -p playground-vue",
+    "test:e2e": "playwright test",
+    "check:doctor": "vite-doctor . --max-warnings 0 --format text",
+    "validate": "pnpm build && publint --strict",
+    "build:playgrounds": "nuxi build playground && vite build playground-vue"
+  },
+  "peerDependencies": {
+    "vue": "^3.5.0",
+    "vue-router": "^4.2.0 || ^5.0.0"
+  },
+  "dependencies": {
+    "@nuxt/kit": "catalog:prod"
+  },
+  "devDependencies": {
+    "@nuxt/eslint-config": "catalog:lint",
+    "@nuxt/module-builder": "catalog:build",
+    "@playwright/test": "catalog:test",
+    "@types/node": "catalog:build",
+    "@vitejs/plugin-vue": "catalog:test",
+    "eslint": "catalog:lint",
+    "nuxt": "catalog:nuxt",
+    "publint": "catalog:build",
+    "typescript": "catalog:build",
+    "vite": "catalog:test",
+    "vite-doctor": "catalog:lint",
+    "vue": "catalog:nuxt",
+    "vue-router": "catalog:nuxt",
+    "vue-tsc": "catalog:build"
+  }
+}
