@@ -67,7 +67,14 @@ export function restoreScroll(
   hash: string,
   { signal, settle = 3000 }: RestoreScrollOptions = {},
 ): void {
-  const target = hash ? document.getElementById(hash.slice(1)) : null
+  let id = hash.slice(1)
+  try {
+    id = decodeURIComponent(id)
+  }
+  catch {
+    // malformed escapes are valid in a fragment and may be literal element ids
+  }
+  const target = hash ? document.getElementById(id) : null
   const targets = containers
     .filter(({ element }) => !target || !element.contains(target))
     .map(({ id, element }) => ({ element, position: snapshot?.[id] ?? { left: 0, top: 0 }, height: -1 }))
