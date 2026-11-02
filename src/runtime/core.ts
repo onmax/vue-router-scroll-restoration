@@ -67,7 +67,7 @@ export function restoreScroll(
   hash: string,
   { signal, settle = 3000 }: RestoreScrollOptions = {},
 ): void {
-  const target = hash ? findHashTarget(hash) : null
+  const target = hash ? document.getElementById(hash.slice(1)) : null
   const targets = containers
     .filter(({ element }) => !target || !element.contains(target))
     .map(({ id, element }) => ({ element, position: snapshot?.[id] ?? { left: 0, top: 0 }, height: -1 }))
@@ -115,17 +115,6 @@ function reached(element: Element, { left, top }: ScrollPosition) {
   return Math.abs(element.scrollTop - top) < 1 && Math.abs(element.scrollLeft - left) < 1
 }
 
-function findHashTarget(hash: string) {
-  const id = hash.slice(1)
-  try {
-    return document.getElementById(decodeURIComponent(id))
-  }
-  catch {
-    // a malformed escape such as `#%E0%A4%A`
-    return document.getElementById(id)
-  }
-}
-
 export interface ScrollStore {
   get: (key: string) => ScrollSnapshot | undefined
   set: (key: string, snapshot: ScrollSnapshot) => void
@@ -135,17 +124,21 @@ export interface ScrollStore {
 
 /** Snapshots by key, in memory, oldest first, keeping at most `limit`. */
 export function createScrollStore(storageKey: string, limit = 100): ScrollStore {
-  const snapshots = new Map<string, ScrollSnapshot>(read(storageKey))
+  let snapshots: Map<string, ScrollSnapshot>
+  try {
+    // anything that isn't a list of [key, snapshot] pairs throws here
+    snapshots = new Map(JSON.parse(sessionStorage.getItem(storageKey)!))
+  }
+  catch {
+    snapshots = new Map()
+  }
   return {
     get: key => snapshots.get(key),
     set(key, snapshot) {
       snapshots.delete(key)
       snapshots.set(key, snapshot)
-      for (const oldest of snapshots.keys()) {
-        if (snapshots.size <= limit)
-          break
-        snapshots.delete(oldest)
-      }
+      if (snapshots.size > limit)
+        snapshots.delete(snapshots.keys().next().value!)
     },
     persist() {
       try {
@@ -156,25 +149,4 @@ export function createScrollStore(storageKey: string, limit = 100): ScrollStore 
       }
     },
   }
-}
-
-function read(storageKey: string): [string, ScrollSnapshot][] {
-  let stored: unknown
-  try {
-    stored = JSON.parse(sessionStorage.getItem(storageKey) ?? '[]')
-  }
-  catch {
-    return []
-  }
-  // another version or another script may have written this key
-  return Array.isArray(stored) ? stored.filter(isStoredEntry) : []
-}
-
-function isStoredEntry(value: unknown): value is [string, ScrollSnapshot] {
-  return Array.isArray(value) && value.length === 2 && typeof value[0] === 'string' && isSnapshot(value[1])
-}
-
-function isSnapshot(value: unknown): value is ScrollSnapshot {
-  return typeof value === 'object' && value !== null
-    && Object.values(value as Record<string, Partial<ScrollPosition> | null>).every(position => typeof position?.left === 'number' && typeof position.top === 'number')
 }

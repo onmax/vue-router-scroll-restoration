@@ -13,8 +13,6 @@ export interface ModuleOptions {
    * @default 3000
    */
   settle: number | false
-  /** @default 'vue-router-scroll-restoration' */
-  storageKey: string
 }
 
 export default defineNuxtModule<ModuleOptions>({
@@ -26,7 +24,6 @@ export default defineNuxtModule<ModuleOptions>({
   defaults: {
     containers: ['window'],
     settle: 3000,
-    storageKey: 'vue-router-scroll-restoration',
   },
   setup(options, nuxt) {
     const resolver = createResolver(import.meta.url)

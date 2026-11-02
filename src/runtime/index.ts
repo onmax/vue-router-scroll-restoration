@@ -25,8 +25,6 @@ export interface ScrollRestorationOptions {
    * @default nextTick
    */
   ready?: (to: RouteLocationNormalized, from: RouteLocationNormalizedLoaded) => Promise<unknown>
-  /** @default 'vue-router-scroll-restoration' */
-  storageKey?: string
 }
 
 declare module 'vue-router' {
@@ -46,14 +44,14 @@ declare module 'vue-router' {
  * `scrollToTop: false` (or a function returning `false`), as in Nuxt.
  *
  * Replaces the router's `scrollBehavior`. Call it before or after the first navigation.
- * Returns a function that removes it again.
+ * Does nothing on the server.
  */
-export function setupScrollRestoration(router: Router, options: ScrollRestorationOptions = {}): () => void {
+export function setupScrollRestoration(router: Router, options: ScrollRestorationOptions = {}): void {
   if (typeof window === 'undefined')
-    return () => {}
+    return
 
-  const { containers = [WINDOW], settle, ready = () => nextTick(), storageKey = 'vue-router-scroll-restoration' } = options
-  const store = createScrollStore(storageKey)
+  const { containers = [WINDOW], settle, ready = () => nextTick() } = options
+  const store = createScrollStore('vue-router-scroll-restoration')
   const routerHistory = router.options.history
   const entry = () => routerHistory.state.position as number
 
@@ -94,39 +92,29 @@ export function setupScrollRestoration(router: Router, options: ScrollRestoratio
     })
   }
 
-  const cleanups = [
-    routerHistory.listen((_to, _from, info) => traversing = info.type === 'pop'),
-    // the old page is still on screen
-    router.beforeEach((to, from) => {
-      if (samePlace(to, from))
-        return
-      restoring?.abort()
-      capture()
-    }),
-    router.afterEach((to, from, failure) => {
-      const traverse = traversing
-      traversing = false
-      if (!failure)
-        navigated(to, from, from === START_LOCATION ? 'reload' : traverse ? 'traverse' : entry() === currentEntry ? 'replace' : 'push')
-    }),
-  ]
+  routerHistory.listen((_to, _from, info) => traversing = info.type === 'pop')
+  // the old page is still on screen
+  router.beforeEach((to, from) => {
+    if (samePlace(to, from))
+      return
+    restoring?.abort()
+    capture()
+  })
+  router.afterEach((to, from, failure) => {
+    const traverse = traversing
+    traversing = false
+    if (!failure)
+      navigated(to, from, from === START_LOCATION ? 'reload' : traverse ? 'traverse' : entry() === currentEntry ? 'replace' : 'push')
+  })
   if (router.currentRoute.value !== START_LOCATION)
     navigated(router.currentRoute.value, START_LOCATION, 'reload')
 
-  const controller = new AbortController()
   const persist = () => {
     capture()
     store.persist()
   }
-  window.addEventListener('pagehide', persist, { signal: controller.signal })
-  document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && persist(), { signal: controller.signal })
-
-  return () => {
-    restoring?.abort()
-    controller.abort()
-    for (const cleanup of cleanups)
-      cleanup()
-  }
+  window.addEventListener('pagehide', persist)
+  document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && persist())
 }
 
 /** Query-only changes, and the forced replace Nuxt makes after hydration, keep the position. */
