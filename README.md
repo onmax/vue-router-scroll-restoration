@@ -72,9 +72,9 @@ Minified and gzipped with esbuild, `vue` and `vue-router` external:
 
 | Entry | min | min+gzip |
 | --- | --- | --- |
-| `vue-router-scroll-restoration` | 2.8 kB | 1.4 kB |
+| `vue-router-scroll-restoration` | 2.9 kB | 1.4 kB |
 | `vue-router-scroll-restoration/core` | 1.8 kB | 1.0 kB |
-| `vue-router-scroll-restoration/nuxt` (client plugin) | 3.1 kB | 1.6 kB |
+| `vue-router-scroll-restoration/nuxt` (client plugin) | 3.2 kB | 1.6 kB |
 
 Medians of 15 runs in Chromium against the production playgrounds:
 

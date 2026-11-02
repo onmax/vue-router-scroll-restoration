@@ -5,6 +5,8 @@ import { abortOnInput, captureScroll, createScrollStore, findContainers, restore
 
 export type { ScrollPosition, ScrollSnapshot } from './core'
 
+export type NavigationType = 'push' | 'replace' | 'traverse' | 'reload'
+
 export interface ScrollRestorationOptions {
   /**
    * Selectors of the elements that scroll, `'window'` for the document. Elements with
@@ -57,8 +59,8 @@ export function setupScrollRestoration(router: Router, options: ScrollRestoratio
   if (containers.includes(WINDOW))
     history.scrollRestoration = 'manual'
 
-  // a history entry's position, or a route's shared scrollKey
-  let currentKey: number | string | undefined
+  // Prefixed keys keep snapshots readable across application updates.
+  let currentKey: string | undefined
   let traversing = false
   let restoring: AbortController | undefined
 
@@ -70,7 +72,8 @@ export function setupScrollRestoration(router: Router, options: ScrollRestoratio
   const navigated = (to: RouteLocationNormalized, from: RouteLocationNormalizedLoaded, traverse: boolean) => {
     const reload = from === START_LOCATION
     const scrollKey = to.matched.at(-1)?.meta.scrollKey
-    currentKey = (typeof scrollKey === 'function' ? scrollKey(to) : scrollKey) || entry()
+    const shared = typeof scrollKey === 'function' ? scrollKey(to) : scrollKey
+    currentKey = shared ? `key:${shared}` : `entry:${entry()}`
 
     if (samePlace(to, from))
       return
@@ -79,7 +82,7 @@ export function setupScrollRestoration(router: Router, options: ScrollRestoratio
       return
 
     // a new entry has nothing saved; a replaced one holds the page it replaced
-    const snapshot = typeof currentKey === 'string' || traverse || reload ? store.get(currentKey) : undefined
+    const snapshot = currentKey.startsWith('key:') || traverse || reload ? store.get(currentKey) : undefined
     // the browser already shows a freshly loaded page at the top
     if (reload && !snapshot && !to.hash)
       return

@@ -301,6 +301,17 @@ test('12. reload restores the history entry position', async ({ page }) => {
   await expectTop(page, 1800)
 })
 
+test('12. restores a history snapshot persisted by the previous runtime', async ({ page }) => {
+  await page.addInitScript(() => {
+    const position = history.state?.position ?? history.length - 1
+    sessionStorage.setItem('vue-router-scroll-restoration', JSON.stringify([
+      [`entry:${position}`, { '[data-scroll-root]': { left: 0, top: 1800 } }],
+    ]))
+  })
+  await open(page, '/long', 'Long')
+  await expectTop(page, 1800)
+})
+
 test('13. per-route false and function policies keep position', async ({ page }) => {
   await open(page, '/long', 'Long')
   await scrollTo(page, 1200)
@@ -331,6 +342,17 @@ test('14. hidden overview restores on Back and the in-page push link', async ({ 
   await expect(page.locator(title)).toHaveText('Items')
   await expectTop(page, 1200, true)
   await expect(page.getByTestId('overview')).toHaveAttribute('data-original-overview', 'true')
+})
+
+test('14. restores a shared snapshot persisted by the previous runtime', async ({ page }) => {
+  await page.addInitScript(() => {
+    sessionStorage.setItem('vue-router-scroll-restoration', JSON.stringify([
+      ['key:items', { '[data-scroll-root]': { left: 0, top: 1200 } }],
+    ]))
+  })
+  await open(page, '/other', 'Other')
+  await navigate(page, 'items', 'Items')
+  await expectTop(page, 1200)
 })
 
 test('15. blocked and redirected navigations preserve the right entries', async ({ page }) => {
