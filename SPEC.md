@@ -40,11 +40,12 @@ Each numbered scenario below is one Playwright test in the playground. A scenari
 9. **Hash.** A link to `#section` scrolls that element into view inside the container, respecting `scroll-margin-top`.
 10. **Several containers.** The window and one or more element containers are saved and restored independently, each by its own key.
 11. **Container recreated by the route.** A container rendered inside the page (not the layout) is restored after the new page mounts it.
-12. **Reload.** Reloading the page restores the container position (kept in `sessionStorage`, written on `pagehide`, never with `replaceState`).
+12. **Reload.** Reloading the page restores the container position (kept in `sessionStorage`, written on `pagehide`, never with `replaceState`). A fresh load (a typed URL, a plain link) starts at the top, even when it takes the history index of an entry that Back pruned, so the browser's navigation type decides, not the index.
 13. **Per-route control.** A route can opt out (`meta.scrollToTop: false`, as Nuxt does) or provide a function. This covers overview/child routes.
 14. **Overview/child.** An overview page keeps a hidden overview mounted while a child route shows (as such an overview component does). Opening a child starts at the top, Back or the in-page back link (a push to the overview path) returns to the overview's old position, without component code. If it needs an option, name it.
 15. **Failed and redirected navigations** save nothing wrong and restore nothing.
 16. **SSR.** No `window`/`document` access during server rendering, no hydration warnings.
+17. **Page transitions.** Back to a Nuxt page with a page transition, from a page without one, still restores. Nuxt resolves its transition promise only when a leave transition ends, so then it never resolves.
 
 ## Shape
 
@@ -52,7 +53,7 @@ One npm package, three entries:
 
 - `vue-router-scroll-restoration/core`: no framework imports. Finds containers (configured selectors, `'window'` for the document, and any `[data-scroll-restoration-id]` element), captures their positions, restores a snapshot, and keeps snapshots per key in memory, persisted to `sessionStorage` on `pagehide`. Restoring keeps re-applying positions every frame while content grows, and stops when every position has held for 200 ms, after `settle` milliseconds, on wheel, touch, pointer or key input, or when a newer navigation aborts it. A hash target is scrolled into view, and the containers that hold it are left to `scrollIntoView`.
 - `vue-router-scroll-restoration`: `setupScrollRestoration(router, options)`. It captures in `beforeEach`, while the old page is still on screen, under the key of the entry being left, so Back captures too and Forward restores. Keys come from Vue Router's `history.state.position`; `router.options.history.listen` tells traversals from pushes. Pushes and replaces start at the top (a replaced entry still holds the page it replaced), traversals and reloads restore. Same path and hash keep the position. It also restores the first page when set up after the initial navigation, as Nuxt plugins are.
-- `vue-router-scroll-restoration/nuxt`: Nuxt module (`scrollRestoration` config key). Clears Nuxt's `scrollBehavior` through a `router.options` file added with `pages:routerOptions`, right after Nuxt's built-in one so an app's own file still wins (setting it at runtime doesn't hold: Nuxt restores it in `app:created`). Waits for `page:loading:end`, the page transition and one frame, as Nuxt's own `scrollBehavior` does. Nested pages must render with `<NuxtPage>`, which fires that hook.
+- `vue-router-scroll-restoration/nuxt`: Nuxt module (`scrollRestoration` config key). Clears Nuxt's `scrollBehavior` through a `router.options` file added with `pages:routerOptions`, right after Nuxt's built-in one so an app's own file still wins (setting it at runtime doesn't hold: Nuxt restores it in `app:created`). Waits for `page:loading:end`, the page transition and one frame, as Nuxt's own `scrollBehavior` does, but at most 1 s for its transition promise: coming from a page without a leave transition, nothing resolves it. A promise that timed out isn't waited on again. Nested pages must render with `<NuxtPage>`, which fires that hook. When the app's own `router.options` sets `scrollBehavior`, the plugin does nothing.
 
 Options: `containers` (default `['window']`), `settle` (default `3000`, `false` restores once), and for plain Vue Router `ready(to, from)` (default `nextTick`). Per route: `meta.scrollToTop: false` or a function, as in Nuxt, and `meta.scrollKey`, read from the matched leaf only, which shares one saved position across every visit to the route, links included. That is what restores an overview through its in-page back link.
 
@@ -62,7 +63,7 @@ Not built yet, from the research (TanStack Router, React Router, SvelteKit): tra
 
 `vue-router/experimental` (5.4) was ruled out by reading its source: positions are keyed by `to.path + to.hash`, `restore(entry, to)` can't tell a push from a traversal, it restores once, and `onRouteRendered` falls back to `afterEach` outside a `<RouterView>`, which is where a Nuxt layout sits. The package keeps its API close (capture and restore per container, `scrollToTop`) so it could move onto it if those gaps close upstream.
 
-`test/e2e/scenarios.spec.ts` covers the 16 scenarios, written from this spec by a separate tester before it read `src/`. All pass on the Nuxt and Vue playgrounds in Chromium and WebKit (62 tests; scenario 16 is Nuxt only). The one failure along the way was a fixture rendering a nested Nuxt page with `<RouterView>`, which never fires `page:loading:end`; real apps use `<NuxtPage>`.
+`test/e2e/scenarios.spec.ts` covers the 17 scenarios, written from this spec by a separate tester before it read `src/`. All pass on the Nuxt and Vue playgrounds in Chromium and WebKit (scenario 16 is Nuxt only, and scenario 17 only has a transition in Nuxt). The one failure along the way was a fixture rendering a nested Nuxt page with `<RouterView>`, which never fires `page:loading:end`; real apps use `<NuxtPage>`.
 
 ## Out of scope
 

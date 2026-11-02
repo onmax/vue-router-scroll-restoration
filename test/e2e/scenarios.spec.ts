@@ -309,7 +309,25 @@ test('12. restores a history snapshot persisted by the previous runtime', async 
     ]))
   })
   await open(page, '/long', 'Long')
+  await page.reload()
+  await expect(page.locator(title)).toHaveText('Long')
   await expectTop(page, 1800)
+})
+
+test('12. a fresh load after Back starts at the top', async ({ page }) => {
+  await open(page, '/long', 'Long')
+  await scrollTo(page, 1200)
+  await navigate(page, 'other', 'Other')
+  // Nuxt scrolls the new page to the top a frame after its title shows
+  await page.waitForTimeout(200)
+  await scrollTo(page, 2000)
+  await page.goBack()
+  await expect(page.locator(title)).toHaveText('Long')
+  await expectTop(page, 1200)
+  // The new entry takes the index of the Other entry it prunes; Other's snapshot isn't its own
+  await open(page, '/late', 'Late')
+  await lateContentArrived(page)
+  await expectTop(page, 0)
 })
 
 test('13. per-route false and function policies keep position', async ({ page }) => {
@@ -374,6 +392,15 @@ test('15. blocked and redirected navigations preserve the right entries', async 
   await page.goForward()
   await expect(page.locator(title)).toHaveText('Other')
   await expectTop(page, 700)
+})
+
+test('17. Back to a page with a transition from a page without one restores', async ({ page }) => {
+  await open(page, '/fade', 'Fade')
+  await scrollTo(page, 1500)
+  await navigate(page, 'other', 'Other')
+  await page.goBack()
+  await expect(page.locator(title)).toHaveText('Fade')
+  await expectTop(page, 1500)
 })
 
 test('16. SSR renders HTML and navigates without hydration warnings', async ({ page, request }, info) => {

@@ -21,6 +21,7 @@ const groups = [
       { to: '/keep-function', id: 'keep-function', text: 'Keep function' },
       { to: '/blocked', id: 'blocked', text: 'Blocked' },
       { to: '/redirect', id: 'redirect', text: 'Redirect' },
+      { to: '/fade', id: 'fade', text: 'Fade' },
     ],
   },
 ]
