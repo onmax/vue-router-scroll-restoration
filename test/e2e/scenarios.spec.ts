@@ -248,6 +248,16 @@ test('9. hash scrolling respects the container and scroll-margin-top', async ({ 
   await expect.poll(() => page.evaluate(() => Math.abs(window.scrollY))).toBeLessThanOrEqual(1)
 })
 
+test('9. an encoded hash finds its element', async ({ page }) => {
+  await open(page, '/hash', 'Hash')
+  await page.getByTestId('hash-encoded').click()
+  await expect(page).toHaveURL(/#secci%C3%B3n-%2541$/)
+  await expect.poll(() => page.getByTestId('section-encoded').evaluate((el) => {
+    const container = document.querySelector('[data-scroll-root]')!
+    return Math.abs(el.getBoundingClientRect().top - container.getBoundingClientRect().top - 40)
+  })).toBeLessThanOrEqual(1)
+})
+
 test('10. window and element containers restore independently', async ({ page }) => {
   await open(page, '/inner', 'Inner')
   await page.addStyleTag({ content: 'html, body { height: auto; min-height: 2100px; } .layout { position: fixed; inset: 0; }' })

@@ -58,8 +58,8 @@ const SETTLED_AFTER = 200
 
 /**
  * Scrolls each container to its position in `snapshot`, or to the top when it has none.
- * With a `hash`, the target element is scrolled into view instead, and the containers that hold it
- * are left to `scrollIntoView`.
+ * With a `hash`, decoded as in a Vue Router route, the target element is scrolled into view instead,
+ * and the containers that hold it are left to `scrollIntoView`.
  */
 export function restoreScroll(
   containers: readonly ScrollContainer[],
@@ -67,14 +67,7 @@ export function restoreScroll(
   hash: string,
   { signal, settle = 3000 }: RestoreScrollOptions = {},
 ): void {
-  let id = hash.slice(1)
-  try {
-    id = decodeURIComponent(id)
-  }
-  catch {
-    // malformed escapes are valid in a fragment and may be literal element ids
-  }
-  const target = hash ? document.getElementById(id) : null
+  const target = hash ? document.getElementById(hash.slice(1)) : null
   const targets = containers
     .filter(({ element }) => !target || !element.contains(target))
     .map(({ id, element }) => ({ element, position: snapshot?.[id] ?? { left: 0, top: 0 }, height: -1 }))
