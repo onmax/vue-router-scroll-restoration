@@ -5,7 +5,22 @@
   "packageManager": "pnpm@12.15.0",
   "description": "Scroll restoration for Vue Router and Nuxt on any scroll container",
   "license": "MIT",
-  "repository": "onmax/vue-router-scroll-restoration",
+  "author": "onmax",
+  "homepage": "https://github.com/onmax/vue-router-scroll-restoration#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/onmax/vue-router-scroll-restoration.git"
+  },
+  "bugs": "https://github.com/onmax/vue-router-scroll-restoration/issues",
+  "keywords": [
+    "vue",
+    "vue-router",
+    "nuxt",
+    "nuxt-module",
+    "scroll",
+    "scroll-restoration",
+    "scroll-behavior"
+  ],
   "sideEffects": false,
   "exports": {
     ".": {
@@ -60,5 +75,9 @@
     "vue": "catalog:nuxt",
     "vue-router": "catalog:nuxt",
     "vue-tsc": "catalog:build"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }
