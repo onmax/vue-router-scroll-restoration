@@ -40,7 +40,7 @@ Each numbered scenario below is one Playwright test in the playground. A scenari
 9. **Hash.** A link to `#section` scrolls that element into view inside the container, respecting `scroll-margin-top`.
 10. **Several containers.** The window and one or more element containers are saved and restored independently, each by its own key.
 11. **Container recreated by the route.** A container rendered inside the page (not the layout) is restored after the new page mounts it.
-12. **Reload.** Reloading the page restores the container position (store it in `history.state`).
+12. **Reload.** Reloading the page restores the container position (kept in `sessionStorage`, written on `pagehide`, never with `replaceState`).
 13. **Per-route control.** A route can opt out (`meta.scrollToTop: false`, as Nuxt does) or provide a function. This covers Portal's overview/child routes.
 14. **Overview/child.** An overview page keeps a hidden overview mounted while a child route shows (as `OverviewWithChild` does). Opening a child starts at the top, Back or the in-page back link (a push to the overview path) returns to the overview's old position, without component code. If it needs an option, name it.
 15. **Failed and redirected navigations** save nothing wrong and restore nothing.
@@ -48,40 +48,21 @@ Each numbered scenario below is one Playwright test in the playground. A scenari
 
 ## Shape
 
-One npm package, three entries, so users install one thing and import what fits:
+One npm package, three entries:
 
-- `vue-router-scroll-restoration/core`: no framework imports, no-ops on the server.
-  - Container registry: `[data-scroll-restoration-id]` elements and configured selectors, plus an opt-in capture-phase `scroll` listener that tracks any element that scrolls.
-  - Store keyed by history entry: in memory, persisted to `sessionStorage` on `pagehide`, bounded, forward entries dropped on push. Never `replaceState` on `pagehide` (it evicts the page from Chrome's bfcache, nuxt/nuxt#36605).
-  - `history.scrollRestoration`: `'manual'` while running, `'auto'` on `pagehide`, back to `'manual'` on a persisted `pageshow`.
-  - Settle loop: re-apply the target with a `ResizeObserver` plus `requestAnimationFrame` until it holds, a timeout passes, the user scrolls or presses a key, or an `AbortSignal` from a newer navigation fires. Never pin to the bottom when the target can't be reached yet; wait for content instead. (Solid Router removed a loop like this for those reasons; the HTML spec allows retrying until the user scrolls.)
-  - Hash scrolling inside a container with `scrollIntoView`, respecting `scroll-margin-top`.
-  - Input contract per navigation: `{ type: 'push' | 'replace' | 'traverse' | 'reload', fromKey, toKey, hash, ready: Promise<void>, signal }`.
-- `vue-router-scroll-restoration`: Vue Router plugin and composables. Entry key from Vue Router's `history.state.position`, navigation type from `router.options.history.listen` (`delta`), "ready" from `onRouteRendered` when available, otherwise `afterEach` plus `nextTick`. Composables: `useScrollContainer(ref, { id })`, `useScrollRestoration({ manual })` returning `{ scroll, savedPosition }` for virtual lists.
-- `vue-router-scroll-restoration/nuxt`: Nuxt module. Registers router options through the `pages:routerOptions` hook instead of overwriting `scrollBehavior` at runtime. "Ready" is `page:loading:end`, then `nuxtApp['~transitionPromise']`, then one frame, skipped if a newer navigation started. Honours `definePageMeta({ scrollToTop })`. Auto-imports the composables. Optional inline head script that restores on reload before hydration.
+- `vue-router-scroll-restoration/core`: no framework imports. Finds containers (configured selectors, `'window'` for the document, and any `[data-scroll-restoration-id]` element), captures their positions, restores a snapshot, and keeps snapshots per key in memory, persisted to `sessionStorage` on `pagehide`. Restoring keeps re-applying positions every frame while content grows, and stops when every position has held for 200 ms, after `settle` milliseconds, on wheel, touch, pointer or key input, or when a newer navigation aborts it. A hash target is scrolled into view, and the containers that hold it are left to `scrollIntoView`.
+- `vue-router-scroll-restoration`: `setupScrollRestoration(router, options)`. It captures in `beforeEach`, while the old page is still on screen, under the key of the entry being left, so Back captures too and Forward restores. Keys come from Vue Router's `history.state.position`; `router.options.history.listen` tells traversals from pushes. Pushes and replaces start at the top (a replaced entry still holds the page it replaced), traversals and reloads restore. Same path and hash keep the position. It also restores the first page when set up after the initial navigation, as Nuxt plugins are.
+- `vue-router-scroll-restoration/nuxt`: Nuxt module (`scrollRestoration` config key). Clears Nuxt's `scrollBehavior` through a `router.options` file added with `pages:routerOptions`, right after Nuxt's built-in one so an app's own file still wins (setting it at runtime doesn't hold: Nuxt restores it in `app:created`). Waits for `page:loading:end`, the page transition and one frame, as Nuxt's own `scrollBehavior` does. Nested pages must render with `<NuxtPage>`, which fires that hook.
 
-Options sketch (change it if the scenarios argue for something better):
+Options: `containers` (default `['window']`), `settle` (default `3000`, `false` restores once), `storageKey`, and for plain Vue Router `ready(to, from)` (default `nextTick`). Per route: `meta.scrollToTop: false` or a function, as in Nuxt, and `meta.scrollKey`, read from the matched leaf only, which shares one saved position across every visit to the route, links included. That is what restores Portal's overview through its in-page back link.
 
-```ts
-// nuxt.config.ts
-scrollRestoration: {
-  containers: ['window', '[data-scroll-root]'], // plus any [data-scroll-restoration-id]
-  trackScrolledElements: false,                 // TanStack-style automatic tracking
-  scrollToTopContainers: ['[data-scroll-root]'],// reset on push
-  getKey: entry => entry.key,                   // share or split positions, e.g. by path
-  settle: { timeout: 5000 },                    // false to restore once
-}
-```
+Not built yet, from the research (TanStack Router, React Router, SvelteKit): tracking any element that scrolls without configuration, containers that reset on push while others are left alone, a `getKey` option, a per-navigation opt-out through `router.push({ state })`, composables for virtual lists, and an inline script that restores before hydration on reload.
 
-Per container, `true` or a handler `({ to, from, type, savedPosition, element }) => position | false | true | Promise<…>`. Per navigation, `router.push({ ..., state: { scroll: false } })` keeps the position, like React Router's `preventScrollReset`.
+## Lab result
 
-No `pushState` patching. No runtime dependencies besides `vue-router` (and `@nuxt/kit` for the module).
+`vue-router/experimental` (5.4) was ruled out by reading its source: positions are keyed by `to.path + to.hash`, `restore(entry, to)` can't tell a push from a traversal, it restores once, and `onRouteRendered` falls back to `afterEach` outside a `<RouterView>`, which is where a Nuxt layout sits. The package keeps its API close (capture and restore per container, `scrollToTop`) so it could move onto it if those gaps close upstream.
 
-## Lab order
-
-1. **Spike: can `vue-router/experimental` cover the scenarios?** With Vue Router 5.4, custom `key`, `capture`, `restore` and `setupListeners`, run the scenario suite against it. Record which scenarios pass. If it passes most, build the Vue layer on top of it and keep only the gaps (per-entry keys, settle loop, Nuxt timing) in this package, and note what an upstream PR to vuejs/router would need. If not, write the Vue layer standalone with an API shaped like it, so it can move onto it later.
-2. Core, Vue Router layer, Nuxt module, scenario by scenario.
-3. A second playground without Nuxt (Vite + Vue Router) runs the same scenarios through the plain plugin.
+`test/e2e/scenarios.spec.ts` covers the 16 scenarios, written from this spec by a separate tester before it read `src/`. All pass on the Nuxt and Vue playgrounds in Chromium and WebKit (62 tests; scenario 16 is Nuxt only). The one failure along the way was a fixture rendering a nested Nuxt page with `<RouterView>`, which never fires `page:loading:end`; Portal uses `<NuxtPage>`.
 
 ## Out of scope
 
