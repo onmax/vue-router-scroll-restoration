@@ -1,0 +1,5 @@
+{
+  "rules": {
+    "nuxt/routing/prefer-nuxtpage-over-routerview": "off"
+  }
+}

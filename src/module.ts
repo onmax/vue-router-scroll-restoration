@@ -21,6 +21,7 @@ export default defineNuxtModule<ModuleOptions>({
   meta: {
     name: 'vue-router-scroll-restoration',
     configKey: 'scrollRestoration',
+    compatibility: { nuxt: '>=4.0.0' },
   },
   defaults: {
     containers: ['window'],

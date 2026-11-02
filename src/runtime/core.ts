@@ -159,10 +159,19 @@ export function createScrollStore(storageKey: string, limit = 100): ScrollStore 
 }
 
 function read(storageKey: string): [string, ScrollSnapshot][] {
+  let stored: unknown
   try {
-    return JSON.parse(sessionStorage.getItem(storageKey) ?? '[]')
+    stored = JSON.parse(sessionStorage.getItem(storageKey) ?? '[]')
   }
   catch {
     return []
   }
+  // another version or another script may have written this key
+  return Array.isArray(stored) ? stored.filter(isStoredEntry) : []
+}
+
+function isStoredEntry(value: unknown): value is [string, ScrollSnapshot] {
+  if (!Array.isArray(value) || value.length !== 2 || typeof value[0] !== 'string' || typeof value[1] !== 'object' || !value[1])
+    return false
+  return Object.values(value[1]).every(position => typeof position?.left === 'number' && typeof position.top === 'number')
 }
