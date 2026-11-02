@@ -58,8 +58,8 @@ const SETTLED_AFTER = 200
 
 /**
  * Scrolls each container to its position in `snapshot`, or to the top when it has none.
- * With a `hash`, the target element is scrolled into view instead, and the containers that hold it
- * are left to `scrollIntoView`.
+ * With a `hash`, decoded as in a Vue Router route, the target element is scrolled into view instead,
+ * and the containers that hold it are left to `scrollIntoView`.
  */
 export function restoreScroll(
   containers: readonly ScrollContainer[],
@@ -67,17 +67,10 @@ export function restoreScroll(
   hash: string,
   { signal, settle = 3000 }: RestoreScrollOptions = {},
 ): void {
-  let id = hash.slice(1)
-  try {
-    id = decodeURIComponent(id)
-  }
-  catch {
-    // malformed escapes are valid in a fragment and may be literal element ids
-  }
-  const target = hash ? document.getElementById(id) : null
+  const target = hash ? document.getElementById(hash.slice(1)) : null
   const targets = containers
     .filter(({ element }) => !target || !element.contains(target))
-    .map(({ id, element }) => ({ element, position: snapshot?.[id] ?? { left: 0, top: 0 }, height: -1 }))
+    .map(({ id, element }) => ({ element, position: snapshot?.[id] ?? { left: 0, top: 0 }, height: element.scrollHeight }))
 
   for (const { element, position } of targets)
     element.scrollTo(position)
@@ -99,13 +92,11 @@ export function restoreScroll(
     let held = true
     for (const item of targets) {
       const { element, position } = item
-      if (!reached(element, position)) {
-        element.scrollTo(position)
-        held &&= reached(element, position)
-      }
-      if (element.scrollHeight !== item.height) {
-        item.height = element.scrollHeight
+      // late content moved it or made the page taller
+      if (Math.abs(element.scrollTop - position.top) >= 1 || Math.abs(element.scrollLeft - position.left) >= 1 || element.scrollHeight !== item.height) {
         held = false
+        item.height = element.scrollHeight
+        element.scrollTo(position)
       }
     }
     if (!held)
@@ -123,20 +114,16 @@ export function abortOnInput(controller: AbortController): void {
     window.addEventListener(type, () => controller.abort(), { capture: true, passive: true, signal: controller.signal })
 }
 
-function reached(element: Element, { left, top }: ScrollPosition) {
-  return Math.abs(element.scrollTop - top) < 1 && Math.abs(element.scrollLeft - left) < 1
-}
-
 export interface ScrollStore {
-  get: (key: string) => ScrollSnapshot | undefined
-  set: (key: string, snapshot: ScrollSnapshot) => void
+  get: (key: string | number) => ScrollSnapshot | undefined
+  set: (key: string | number, snapshot: ScrollSnapshot) => void
   /** Writes the store to `sessionStorage`, so a reload in the same tab finds it. */
   persist: () => void
 }
 
 /** Snapshots by key, in memory, oldest first, keeping at most `limit`. */
 export function createScrollStore(storageKey: string, limit = 100): ScrollStore {
-  let snapshots: Map<string, ScrollSnapshot>
+  let snapshots: Map<string | number, ScrollSnapshot>
   try {
     // anything that isn't a list of [key, snapshot] pairs throws here
     snapshots = new Map(JSON.parse(sessionStorage.getItem(storageKey)!))

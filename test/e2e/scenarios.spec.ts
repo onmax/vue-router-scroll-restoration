@@ -248,6 +248,16 @@ test('9. hash scrolling respects the container and scroll-margin-top', async ({ 
   await expect.poll(() => page.evaluate(() => Math.abs(window.scrollY))).toBeLessThanOrEqual(1)
 })
 
+test('9. an encoded hash finds its element', async ({ page }) => {
+  await open(page, '/hash', 'Hash')
+  await page.getByTestId('hash-encoded').click()
+  await expect(page).toHaveURL(/#secci%C3%B3n-%2541$/)
+  await expect.poll(() => page.getByTestId('section-encoded').evaluate((el) => {
+    const container = document.querySelector('[data-scroll-root]')!
+    return Math.abs(el.getBoundingClientRect().top - container.getBoundingClientRect().top - 40)
+  })).toBeLessThanOrEqual(1)
+})
+
 test('10. window and element containers restore independently', async ({ page }) => {
   await open(page, '/inner', 'Inner')
   await page.addStyleTag({ content: 'html, body { height: auto; min-height: 2100px; } .layout { position: fixed; inset: 0; }' })
@@ -291,6 +301,17 @@ test('12. reload restores the history entry position', async ({ page }) => {
   await expectTop(page, 1800)
 })
 
+test('12. restores a history snapshot persisted by the previous runtime', async ({ page }) => {
+  await page.addInitScript(() => {
+    const position = history.state?.position ?? history.length - 1
+    sessionStorage.setItem('vue-router-scroll-restoration', JSON.stringify([
+      [`entry:${position}`, { '[data-scroll-root]': { left: 0, top: 1800 } }],
+    ]))
+  })
+  await open(page, '/long', 'Long')
+  await expectTop(page, 1800)
+})
+
 test('13. per-route false and function policies keep position', async ({ page }) => {
   await open(page, '/long', 'Long')
   await scrollTo(page, 1200)
@@ -321,6 +342,17 @@ test('14. hidden overview restores on Back and the in-page push link', async ({ 
   await expect(page.locator(title)).toHaveText('Items')
   await expectTop(page, 1200, true)
   await expect(page.getByTestId('overview')).toHaveAttribute('data-original-overview', 'true')
+})
+
+test('14. restores a shared snapshot persisted by the previous runtime', async ({ page }) => {
+  await page.addInitScript(() => {
+    sessionStorage.setItem('vue-router-scroll-restoration', JSON.stringify([
+      ['key:items', { '[data-scroll-root]': { left: 0, top: 1200 } }],
+    ]))
+  })
+  await open(page, '/other', 'Other')
+  await navigate(page, 'items', 'Items')
+  await expectTop(page, 1200)
 })
 
 test('15. blocked and redirected navigations preserve the right entries', async ({ page }) => {

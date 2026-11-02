@@ -133,9 +133,9 @@ Minified and gzipped with esbuild, `vue` and `vue-router` external:
 
 | Entry | min | min+gzip |
 | --- | --- | --- |
-| `vue-router-scroll-restoration` | 3.0 kB | 1.5 kB |
+| `vue-router-scroll-restoration` | 2.9 kB | 1.4 kB |
 | `vue-router-scroll-restoration/core` | 1.8 kB | 1.0 kB |
-| `vue-router-scroll-restoration/nuxt` (client plugin) | 3.3 kB | 1.7 kB |
+| `vue-router-scroll-restoration/nuxt` (client plugin) | 3.2 kB | 1.6 kB |
 
 Medians of 15 runs in Chromium against the production playgrounds:
 
@@ -151,7 +151,7 @@ Vue Router's and Nuxt's default `scrollBehavior` handle `window` only.
 
 | | Inner containers | Back and Forward per history entry | Waits for late content | Nuxt | min+gzip |
 | --- | --- | --- | --- | --- | --- |
-| this package | yes | yes | yes, until it holds or `settle` ms | module | 1.5 kB |
+| this package | yes | yes | yes, until it holds or `settle` ms | module | 1.4 kB |
 | [`vue-router/experimental`](https://github.com/vuejs/router/blob/main/packages/docs/experimental/scroll-restoration.md) (5.4) | per component, with `capture` and `restore` | keyed by path and hash, so a push to a page you saw before restores its old position | no, restores once | no | +0.95 kB in `vue-router` |
 | [`vue-router-better-scroller`](https://github.com/antfu/vue-router-better-scroller) | yes | saves only when leaving by link, so Forward lands at the top | no, restores once after `nextTick` | no | 0.9 kB |
 | [`nuxt-scroll-restoration`](https://github.com/shimizukawa/nuxt-scroll-restoration) | window only | yes, by patching `history.pushState` | retries for 3 s | Nuxt 3 module | 2.2 kB |
