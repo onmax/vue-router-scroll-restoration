@@ -138,6 +138,18 @@ test('4. late content restores after both growth stages', async ({ page }) => {
   await expectTop(page, 3500)
 })
 
+test('4. content that moves the saved position without changing the height restores', async ({ page }) => {
+  await open(page, '/shift', 'Shift')
+  await expect(page.getByTestId('shift-shown')).toBeAttached()
+  await scrollTo(page, 1500)
+  await navigate(page, 'other', 'Other')
+  await page.goBack()
+  await expect(page.locator(title)).toHaveText('Shift')
+  await expect(page.getByTestId('shift-shown')).toBeAttached()
+  await page.waitForTimeout(300)
+  await expectTop(page, 1500)
+})
+
 test('5. async page restores after Suspense renders', async ({ page }) => {
   await open(page, '/async', 'Async')
   await scrollTo(page, 1700)
@@ -193,6 +205,33 @@ test('6. user input while the page is still loading cancels its restore', async 
   await page.waitForTimeout(500)
   await expectTop(page, 300)
 })
+
+for (const ending of ['input', 'navigation', 'timeout']) {
+  test(`6. restores anchoring for a container matched twice after ${ending}`, async ({ page }) => {
+    await open(page, '/long', 'Long')
+    await page.locator(root).evaluate((el) => {
+      el.setAttribute('data-scroll-restoration-id', 'pane')
+      if (el instanceof HTMLElement)
+        el.style.overflowAnchor = 'auto'
+    })
+    await scrollTo(page, 1200)
+    await navigate(page, 'other', 'Other')
+    await page.goBack()
+    await expect(page.locator(title)).toHaveText('Long')
+    await expectTop(page, 1200)
+    const anchoring = () => page.locator(root).evaluate(el => (el as HTMLElement).style.overflowAnchor)
+    await expect.poll(anchoring).toBe('none')
+
+    if (ending === 'input')
+      await page.locator(root).dispatchEvent('wheel')
+    else if (ending === 'navigation') {
+      await page.goForward()
+      await expect(page.locator(title)).toHaveText('Other')
+    }
+
+    await expect.poll(anchoring).toBe('auto')
+  })
+}
 
 test('7. a new navigation cancels a pending restore', async ({ page }) => {
   await beginLateRestore(page)
