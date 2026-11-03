@@ -14,6 +14,7 @@ export const routes: FixtureRoute[] = [
   { path: '/other', page: 'Other' },
   { path: '/late', page: 'Late' },
   { path: '/shift', page: 'Shift' },
+  { path: '/shrink', page: 'Shrink' },
   { path: '/async', page: 'Async' },
   { path: '/fade', page: 'Fade' },
   { path: '/filters', page: 'Filters' },
