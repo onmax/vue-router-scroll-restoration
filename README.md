@@ -163,7 +163,7 @@ The package has three entries:
 
 On every navigation the plugin captures all containers in `beforeEach`, while the old page is still on screen, under the key of the history entry you're leaving. Keys come from Vue Router's `history.state.position`, and the history listener tells a Back or Forward from a push. A push or replace starts at the top, a Back, Forward or reload restores.
 
-To restore, the core sets each position and checks it again every frame. Content that loads late makes the page taller, so the position is applied again until it has held for 200 ms, the `settle` time runs out, or you take over with the wheel, a touch, a pointer or a key.
+To restore, the core sets each position and checks it again every frame until the `settle` time runs out or you take over with the wheel, a touch, a pointer or a key. When late content changes the page's height, or a shorter loading state leaves the container unable to scroll that far, it applies the position again. Any other change of position came from the app, so it leaves that container alone from then on.
 
 ## Size and timings
 

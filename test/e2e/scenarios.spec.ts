@@ -150,6 +150,18 @@ test('4. content that moves the saved position without changing the height resto
   await expectTop(page, 1500)
 })
 
+test('4. a page that shrinks while it reloads restores once it grows back', async ({ page }) => {
+  await open(page, '/shrink', 'Shrink')
+  await expect(page.getByTestId('shrink-done')).toBeAttached()
+  const bottom = await page.locator(root).evaluate(el => el.scrollHeight - el.clientHeight)
+  await scrollTo(page, bottom)
+  await navigate(page, 'other', 'Other')
+  await page.goBack()
+  await expect(page.locator(title)).toHaveText('Shrink')
+  await expect(page.getByTestId('shrink-done')).toBeAttached()
+  await expectTop(page, bottom)
+})
+
 test('5. async page restores after Suspense renders', async ({ page }) => {
   await open(page, '/async', 'Async')
   await scrollTo(page, 1700)
