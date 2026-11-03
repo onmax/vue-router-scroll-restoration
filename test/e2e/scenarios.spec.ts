@@ -206,6 +206,33 @@ test('6. user input while the page is still loading cancels its restore', async 
   await expectTop(page, 300)
 })
 
+for (const ending of ['input', 'navigation', 'timeout']) {
+  test(`6. restores anchoring for a container matched twice after ${ending}`, async ({ page }) => {
+    await open(page, '/long', 'Long')
+    await page.locator(root).evaluate((el) => {
+      el.setAttribute('data-scroll-restoration-id', 'pane')
+      if (el instanceof HTMLElement)
+        el.style.overflowAnchor = 'auto'
+    })
+    await scrollTo(page, 1200)
+    await navigate(page, 'other', 'Other')
+    await page.goBack()
+    await expect(page.locator(title)).toHaveText('Long')
+    await expectTop(page, 1200)
+    const anchoring = () => page.locator(root).evaluate(el => (el as HTMLElement).style.overflowAnchor)
+    await expect.poll(anchoring).toBe('none')
+
+    if (ending === 'input')
+      await page.locator(root).dispatchEvent('wheel')
+    else if (ending === 'navigation') {
+      await page.goForward()
+      await expect(page.locator(title)).toHaveText('Other')
+    }
+
+    await expect.poll(anchoring).toBe('auto')
+  })
+}
+
 test('7. a new navigation cancels a pending restore', async ({ page }) => {
   await beginLateRestore(page)
   await expect(page.getByTestId('late-count')).toHaveText('40')

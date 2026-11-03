@@ -87,7 +87,7 @@ export function restoreScroll(
   abortOnInput(anchoring)
   const timer = setTimeout(() => anchoring.abort(), settle)
   anchoring.signal.addEventListener('abort', () => clearTimeout(timer))
-  for (const { element } of targets) {
+  for (const element of new Set(targets.map(({ element }) => element))) {
     if (!(element instanceof HTMLElement))
       continue
     const previous = element.style.overflowAnchor
