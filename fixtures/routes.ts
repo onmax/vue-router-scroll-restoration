@@ -13,6 +13,7 @@ export const routes: FixtureRoute[] = [
   { path: '/long', page: 'Long' },
   { path: '/other', page: 'Other' },
   { path: '/late', page: 'Late' },
+  { path: '/shift', page: 'Shift' },
   { path: '/async', page: 'Async' },
   { path: '/fade', page: 'Fade' },
   { path: '/filters', page: 'Filters' },

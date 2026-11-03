@@ -138,6 +138,18 @@ test('4. late content restores after both growth stages', async ({ page }) => {
   await expectTop(page, 3500)
 })
 
+test('4. content that moves the saved position without changing the height restores', async ({ page }) => {
+  await open(page, '/shift', 'Shift')
+  await expect(page.getByTestId('shift-shown')).toBeAttached()
+  await scrollTo(page, 1500)
+  await navigate(page, 'other', 'Other')
+  await page.goBack()
+  await expect(page.locator(title)).toHaveText('Shift')
+  await expect(page.getByTestId('shift-shown')).toBeAttached()
+  await page.waitForTimeout(300)
+  await expectTop(page, 1500)
+})
+
 test('5. async page restores after Suspense renders', async ({ page }) => {
   await open(page, '/async', 'Async')
   await scrollTo(page, 1700)

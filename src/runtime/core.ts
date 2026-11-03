@@ -79,10 +79,25 @@ export function restoreScroll(
   if (settle === false || signal?.aborted || targets.every(({ position }) => position.top === 0 && position.left === 0))
     return
 
+  // Content that loads above a restored position can move it without changing the height, after the
+  // positions held long enough to stop re-applying them. The browser's scroll anchoring would follow
+  // that content, so it stays off for the whole settle time, until input or a newer navigation.
+  const anchoring = new AbortController()
+  signal?.addEventListener('abort', () => anchoring.abort(), { signal: anchoring.signal })
+  abortOnInput(anchoring)
+  const timer = setTimeout(() => anchoring.abort(), settle)
+  anchoring.signal.addEventListener('abort', () => clearTimeout(timer))
+  for (const { element } of targets) {
+    if (!(element instanceof HTMLElement))
+      continue
+    const previous = element.style.overflowAnchor
+    element.style.overflowAnchor = 'none'
+    anchoring.signal.addEventListener('abort', () => element.style.overflowAnchor = previous)
+  }
+
   const done = new AbortController()
   const stop = () => done.abort()
-  signal?.addEventListener('abort', stop, { signal: done.signal })
-  abortOnInput(done)
+  anchoring.signal.addEventListener('abort', stop, { signal: done.signal })
 
   const start = performance.now()
   let heldSince = start
