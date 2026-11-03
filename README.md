@@ -194,10 +194,10 @@ Vue Router's and Nuxt's default `scrollBehavior` handle `window` only.
 
 ## Inspiration
 
-- [TanStack Router's scroll restoration](https://github.com/TanStack/router/blob/main/packages/router-core/src/scroll-restoration.ts) gave us `data-scroll-restoration-id` and one saved position per history entry. It's tied to TanStack's router, so we took the ideas and not the code.
+- [TanStack Router's scroll restoration](https://github.com/TanStack/router/blob/main/packages/router-core/src/scroll-restoration.ts) gave me `data-scroll-restoration-id` and one saved position per history entry. It's tied to TanStack's router, so I took the ideas and not the code.
 - [Nuxt's default `scrollBehavior`](https://github.com/nuxt/nuxt/blob/main/packages/nuxt/src/pages/runtime/router.options.ts) set the timing. The restore waits for `page:loading:end` and the page transition, and honours `scrollToTop`.
 - [`vue-router-better-scroller`](https://github.com/antfu/vue-router-better-scroller) by [antfu](https://github.com/antfu) and [posva](https://github.com/posva) showed that a list of selectors is enough to name the containers.
-- [`vue-router/experimental`](https://github.com/vuejs/router/blob/main/packages/docs/experimental/scroll-restoration.md) shaped the API. We kept it close, with capture and restore per container and `scrollToTop`, so this package can move onto it if upstream adds per-entry keys and re-applying.
+- [`vue-router/experimental`](https://github.com/vuejs/router/blob/main/packages/docs/experimental/scroll-restoration.md) shaped the API. I kept it close, with capture and restore per container and `scrollToTop`, so this package can move onto it if upstream adds per-entry keys and re-applying.
 
 ## Not supported
 
