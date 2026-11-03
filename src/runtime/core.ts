@@ -77,10 +77,17 @@ export function restoreScroll(
   const target = hash ? document.getElementById(hash.slice(1)) : null
   const targets = containers
     .filter(({ element }) => !target || !element.contains(target))
-    .map(({ id, element }) => ({ element, position: snapshot?.[id] ?? { left: 0, top: 0 }, height: element.scrollHeight, released: false }))
-
-  for (const { element, position } of targets)
-    element.scrollTo(position)
+    .map(({ id, element }) => {
+      const position = snapshot?.[id] ?? { left: 0, top: 0 }
+      element.scrollTo(position)
+      return {
+        element,
+        position,
+        applied: { left: element.scrollLeft, top: element.scrollTop },
+        height: element.scrollHeight,
+        released: false,
+      }
+    })
   // scroll-margin-top on the target sets the offset
   target?.scrollIntoView({ block: 'start' })
   // Nothing moves a container off its start, so only the others need to settle
@@ -112,11 +119,12 @@ export function restoreScroll(
       item.height = element.scrollHeight
       if (item.released || reached(element, position))
         continue
-      // A position that held can still move later: a section shows a shorter loading state and the
-      // container can't scroll that far, or content above changes height. Any other move came from the
-      // app or the user, so the container is theirs from then on.
-      if (resized || clamped(element, position))
+      // Growth can make a clamped position reachable. A move away from the last applied position
+      // that isn't clamped belongs to the app or the user, even when the height changed too.
+      if ((resized && reached(element, item.applied)) || clamped(element, position)) {
         element.scrollTo(position)
+        item.applied = { left: element.scrollLeft, top: element.scrollTop }
+      }
       else
         item.released = true
     }

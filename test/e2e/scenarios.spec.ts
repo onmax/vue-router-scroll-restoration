@@ -266,6 +266,15 @@ test('6. a scroll by the app during a restore keeps its position as content grow
   await expectTop(page, 650)
 })
 
+test('6. a scroll by the app in the same frame as content growth keeps its position', async ({ page }) => {
+  await restoreLong(page)
+  await page.locator(root).evaluate((el) => {
+    el.insertAdjacentHTML('beforeend', '<div style="height: 400px"></div>')
+    el.scrollTop = 650
+  })
+  await expectTop(page, 650)
+})
+
 test('6. user input while the page is still loading cancels its restore', async ({ page }) => {
   await open(page, '/async', 'Async')
   await scrollTo(page, 2000)
