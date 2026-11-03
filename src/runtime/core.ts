@@ -83,33 +83,30 @@ export function restoreScroll(
     element.scrollTo(position)
   // scroll-margin-top on the target sets the offset
   target?.scrollIntoView({ block: 'start' })
-  if (settle === false || signal?.aborted || targets.every(({ position }) => position.top === 0 && position.left === 0))
+  // Nothing moves a container off its start, so only the others need to settle
+  const settling = targets.filter(({ position }) => position.top !== 0 || position.left !== 0)
+  if (settle === false || signal?.aborted || !settling.length)
     return
 
+  const restore = new AbortController()
+  signal?.addEventListener('abort', () => restore.abort(), { signal: restore.signal })
+  abortOnInput(restore)
+  const timer = setTimeout(() => restore.abort(), settle)
+  restore.signal.addEventListener('abort', () => clearTimeout(timer))
   // Content that loads above a restored position can move it without changing the height. The
   // browser's scroll anchoring would follow that content, so it stays off while the restore settles.
-  const anchoring = new AbortController()
-  signal?.addEventListener('abort', () => anchoring.abort(), { signal: anchoring.signal })
-  abortOnInput(anchoring)
-  const timer = setTimeout(() => anchoring.abort(), settle)
-  anchoring.signal.addEventListener('abort', () => clearTimeout(timer))
-  for (const element of new Set(targets.map(({ element }) => element))) {
+  for (const element of new Set(settling.map(({ element }) => element))) {
     if (!(element instanceof HTMLElement))
       continue
     const previous = element.style.overflowAnchor
     element.style.overflowAnchor = 'none'
-    anchoring.signal.addEventListener('abort', () => element.style.overflowAnchor = previous)
+    restore.signal.addEventListener('abort', () => element.style.overflowAnchor = previous)
   }
 
-  const done = new AbortController()
-  const stop = () => done.abort()
-  anchoring.signal.addEventListener('abort', stop, { signal: done.signal })
-
-  const start = performance.now()
-  const frame = (now: number) => {
-    if (done.signal.aborted)
-      return
-    for (const item of targets) {
+  let pending: number | undefined
+  const check = () => {
+    pending = undefined
+    for (const item of settling) {
       const { element, position } = item
       const resized = element.scrollHeight !== item.height
       item.height = element.scrollHeight
@@ -123,11 +120,44 @@ export function restoreScroll(
       else
         item.released = true
     }
-    if (now - start >= settle || targets.every(({ released }) => released))
-      return stop()
-    requestAnimationFrame(frame)
+    if (settling.every(({ released }) => released))
+      restore.abort()
   }
-  requestAnimationFrame(frame)
+  const schedule = () => pending ??= requestAnimationFrame(check)
+
+  // A position that held only moves when the layout changes, so the check waits for one: a DOM
+  // change inside a container, a resize of a container or of its children, a scroll, or a viewport
+  // resize. Observing only the children keeps the browser's per-frame resize checks small on large
+  // pages; content that grows inside them resizes them too.
+  const resizes = new ResizeObserver(schedule)
+  const mutations = new MutationObserver((records) => {
+    for (const { target: parent, addedNodes } of records) {
+      if (settling.some(({ element }) => element === parent)) {
+        for (const node of addedNodes) {
+          if (node instanceof Element)
+            resizes.observe(node)
+        }
+      }
+    }
+    schedule()
+  })
+  for (const { element } of settling) {
+    resizes.observe(element)
+    for (const child of element.children)
+      resizes.observe(child)
+    mutations.observe(element, { attributes: true, characterData: true, childList: true, subtree: true })
+    // the document's scroller fires its scroll events on window
+    const scroller = element === document.scrollingElement ? window : element
+    scroller.addEventListener('scroll', schedule, { passive: true, signal: restore.signal })
+  }
+  window.addEventListener('resize', schedule, { passive: true, signal: restore.signal })
+  restore.signal.addEventListener('abort', () => {
+    if (pending !== undefined)
+      cancelAnimationFrame(pending)
+    resizes.disconnect()
+    mutations.disconnect()
+  })
+  schedule()
 }
 
 /** Aborts `controller` on the first wheel, touch, pointer or key input. */

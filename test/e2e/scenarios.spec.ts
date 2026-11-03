@@ -20,6 +20,8 @@ interface ScrollSample {
 declare global {
   interface Window {
     scenarioScrollTrace: ScrollSample[]
+    scenarioTraceFrame: FrameRequestCallback
+    scenarioFrames: number
   }
 }
 
@@ -49,6 +51,33 @@ async function navigate(page: Page, name: string, text: string) {
 async function lateContentArrived(page: Page) {
   await expect(page.getByTestId('late-count')).toHaveText('120')
   await page.waitForTimeout(200)
+}
+
+// Counts the page's animation frame requests, leaving out the scroll timeline's own
+async function countFrames(page: Page) {
+  await page.addInitScript(() => {
+    window.scenarioFrames = 0
+    const request = window.requestAnimationFrame.bind(window)
+    window.requestAnimationFrame = (callback) => {
+      if (callback !== window.scenarioTraceFrame)
+        window.scenarioFrames++
+      return request(callback)
+    }
+  })
+}
+
+async function restoreLong(page: Page) {
+  await open(page, '/long', 'Long')
+  await scrollTo(page, 1200)
+  await navigate(page, 'other', 'Other')
+  await page.goBack()
+  await expect(page.locator(title)).toHaveText('Long')
+  await expectTop(page, 1200)
+}
+
+// The rows are a descendant of the page, not a child of the container
+async function setRowsShown(page: Page, shown: boolean) {
+  await page.locator('[data-scroll-root] .rows').evaluate((el, value) => (el as HTMLElement).style.display = value ? '' : 'none', shown)
 }
 
 async function beginLateRestore(page: Page) {
@@ -89,6 +118,7 @@ test.beforeEach(async ({ page }) => {
       sample('frame')
       requestAnimationFrame(tick)
     }
+    window.scenarioTraceFrame = tick
     requestAnimationFrame(tick)
   })
 })
@@ -163,6 +193,29 @@ test('4. a page that shrinks while it reloads restores once it grows back', asyn
   await expectTop(page, bottom)
 })
 
+test('4. a restore that holds its position does no work until the layout changes', async ({ page }) => {
+  await countFrames(page)
+  await restoreLong(page)
+  const frames = await page.evaluate(() => window.scenarioFrames)
+  await page.waitForTimeout(500)
+  expect(await page.evaluate(() => window.scenarioFrames)).toBe(frames)
+  await setRowsShown(page, false)
+  await expectTop(page, 0)
+  await setRowsShown(page, true)
+  await expectTop(page, 1200)
+})
+
+test('4. a layout change after the settle time is left alone', async ({ page }) => {
+  await restoreLong(page)
+  // the playgrounds keep the default settle time of 3 s
+  await page.waitForTimeout(3200)
+  await setRowsShown(page, false)
+  await expectTop(page, 0)
+  await setRowsShown(page, true)
+  await page.waitForTimeout(300)
+  await expectTop(page, 0)
+})
+
 test('5. async page restores after Suspense renders', async ({ page }) => {
   await open(page, '/async', 'Async')
   await scrollTo(page, 1700)
@@ -203,6 +256,14 @@ test('6. user input cancels a pending restore', async ({ page }) => {
       }).toBeLessThanOrEqual(1)
     })
   }
+})
+
+test('6. a scroll by the app during a restore keeps its position as content grows', async ({ page }) => {
+  await beginLateRestore(page)
+  await expect(page.getByTestId('late-count')).toHaveText('40')
+  await scrollTo(page, 650)
+  await lateContentArrived(page)
+  await expectTop(page, 650)
 })
 
 test('6. user input while the page is still loading cancels its restore', async ({ page }) => {
@@ -328,6 +389,22 @@ test('10. window and element containers restore independently', async ({ page })
   await expectTop(page, 400)
   await expect.poll(() => page.getByTestId('inner').evaluate(el => Math.abs(el.scrollTop - 700))).toBeLessThanOrEqual(1)
   await expect.poll(() => page.evaluate(() => Math.abs(window.scrollY - 300))).toBeLessThanOrEqual(1)
+})
+
+test('10. a scroll by the app on the window during a restore keeps its position as content grows', async ({ page }) => {
+  await open(page, '/long', 'Long')
+  await page.addStyleTag({ content: 'html, body { height: auto; min-height: 2100px; } .layout { position: fixed; inset: 0; }' })
+  await page.evaluate(() => window.scrollTo(0, 300))
+  await expect.poll(() => page.evaluate(() => Math.abs(window.scrollY - 300))).toBeLessThanOrEqual(1)
+  await navigate(page, 'other', 'Other')
+  await page.goBack()
+  await expect(page.locator(title)).toHaveText('Long')
+  await expect.poll(() => page.evaluate(() => Math.abs(window.scrollY - 300))).toBeLessThanOrEqual(1)
+  await page.evaluate(() => window.scrollTo(0, 100))
+  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
+  await page.evaluate(() => document.body.insertAdjacentHTML('beforeend', '<div style="height: 400px"></div>'))
+  await page.waitForTimeout(300)
+  expect(await page.evaluate(() => Math.round(window.scrollY))).toBe(100)
 })
 
 test('10. a selector that matches several elements keeps the first', async ({ page }) => {
