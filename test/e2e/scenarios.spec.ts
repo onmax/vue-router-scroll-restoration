@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test'
+import { readFileSync } from 'node:fs'
 import { expect, test } from '@playwright/test'
 
 const root = '[data-scroll-root]'
@@ -327,6 +328,42 @@ test('10. window and element containers restore independently', async ({ page })
   await expectTop(page, 400)
   await expect.poll(() => page.getByTestId('inner').evaluate(el => Math.abs(el.scrollTop - 700))).toBeLessThanOrEqual(1)
   await expect.poll(() => page.evaluate(() => Math.abs(window.scrollY - 300))).toBeLessThanOrEqual(1)
+})
+
+test('10. a selector that matches several elements keeps the first', async ({ page }) => {
+  const warnings: string[] = []
+  page.on('console', message => message.type() === 'warning' && warnings.push(message.text()))
+  await open(page, '/long', 'Long')
+  await scrollTo(page, 1500)
+  // a second [data-scroll-root] inside the page, after the layout's in document order
+  await page.locator(title).evaluate((el) => {
+    el.insertAdjacentHTML('afterend', '<div data-scroll-root data-testid="twin" style="height: 100px; overflow-y: auto"><div style="height: 1000px"></div></div>')
+    document.querySelector<HTMLElement>('[data-testid="twin"]')!.scrollTop = 200
+  })
+  await navigate(page, 'other', 'Other')
+  await page.goBack()
+  await expect(page.locator(title)).toHaveText('Long')
+  await expectTop(page, 1500)
+  // production builds drop the development warning
+  expect(warnings.filter(text => text.includes('vue-router-scroll-restoration'))).toEqual([])
+})
+
+test('10. a selector that matches several elements warns once in development', async ({ page }) => {
+  // the built core (`pnpm validate` runs before the e2e tests), as a development bundler serves it
+  const core = readFileSync(new URL('../../dist/runtime/core.js', import.meta.url), 'utf8').replaceAll('process.env.NODE_ENV', '"development"')
+  await page.route('**/__core.js', route => route.fulfill({ contentType: 'text/javascript', body: core }))
+  await open(page, '/other', 'Other')
+  const result = await page.evaluate(async (url) => {
+    const warnings: unknown[] = []
+    console.warn = (...args: unknown[]) => warnings.push(args.join(' '))
+    document.body.insertAdjacentHTML('beforeend', '<div class="twin" id="first"></div><div class="twin" id="second"></div>')
+    const { findContainers } = await import(url)
+    const found = findContainers(['.twin']).map((container: { element: Element }) => container.element.id)
+    findContainers(['.twin'])
+    return { found, warnings }
+  }, '/__core.js')
+  expect(result.found).toEqual(['first'])
+  expect(result.warnings).toEqual(['[vue-router-scroll-restoration] ".twin" matches 2 elements. Only the first is saved and restored; use a selector that matches the one that scrolls.'])
 })
 
 test('11. a route-created container restores after remount', async ({ page }) => {
