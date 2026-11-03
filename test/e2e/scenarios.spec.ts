@@ -406,6 +406,7 @@ test('10. a scroll by the app on the window during a restore keeps its position 
   await page.evaluate(() => window.scrollTo(0, 300))
   await expect.poll(() => page.evaluate(() => Math.abs(window.scrollY - 300))).toBeLessThanOrEqual(1)
   await navigate(page, 'other', 'Other')
+  await expect.poll(() => page.evaluate(() => Math.abs(window.scrollY))).toBeLessThanOrEqual(1)
   await page.goBack()
   await expect(page.locator(title)).toHaveText('Long')
   await expect.poll(() => page.evaluate(() => Math.abs(window.scrollY - 300))).toBeLessThanOrEqual(1)
