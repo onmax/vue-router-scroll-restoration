@@ -86,7 +86,7 @@ setupScrollRestoration(router, {
 
 | Option | Default | |
 | --- | --- | --- |
-| `containers` | `['window']` | Selectors of the elements that scroll. `'window'` is the document. |
+| `containers` | `['window']` | Selectors of the elements that scroll. `'window'` is the document. Each selector saves the first element it matches, and warns in development when it matches more. |
 | `settle` | `3000` | Keep re-applying a restored position while content loads, for at most this many milliseconds. `false` restores once. |
 | `ready` | `nextTick` | Vue Router only. Resolves when the new page is on screen; the restore waits for it. |
 
@@ -123,6 +123,18 @@ A container that a page renders, like a sidebar list or a panel, doesn't need to
 ```vue
 <div data-scroll-restoration-id="sidebar" class="overflow-y-auto">…</div>
 ```
+
+### Nuxt UI dashboards
+
+Each page's `UDashboardPanel` scrolls its body. `[data-slot="body"]` matches the sidebar first, so name the panel's body:
+
+```ts
+scrollRestoration: {
+  containers: ['[id^="dashboard-panel-"] > [data-slot="body"]'],
+},
+```
+
+On a page with two panels, like a list next to a detail, that restores only the first. List each panel by the `id` you gave it instead: `<UDashboardPanel id="inbox">` is `'#dashboard-panel-inbox > [data-slot="body"]'`.
 
 ## Per route
 
