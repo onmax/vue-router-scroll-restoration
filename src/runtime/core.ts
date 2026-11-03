@@ -19,6 +19,8 @@ export const CONTAINER_ATTRIBUTE = 'data-scroll-restoration-id'
 
 const USER_INPUT = ['wheel', 'touchstart', 'pointerdown', 'keydown'] as const
 
+const warned = new Set<string>()
+
 /**
  * Finds the containers on the page now: each selector in `selectors` (`'window'` for the
  * document), then every element with `data-scroll-restoration-id`.
@@ -27,6 +29,14 @@ export function findContainers(selectors: readonly string[]): ScrollContainer[] 
   const containers: ScrollContainer[] = []
   for (const selector of selectors) {
     const element = selector === WINDOW ? document.scrollingElement : document.querySelector(selector)
+    // Nuxt UI's sidebar and panels both have [data-slot="body"]: only the sidebar would be kept
+    if (process.env.NODE_ENV !== 'production' && element && selector !== WINDOW && !warned.has(selector)) {
+      const count = document.querySelectorAll(selector).length
+      if (count > 1) {
+        warned.add(selector)
+        console.warn(`[vue-router-scroll-restoration] "${selector}" matches ${count} elements. Only the first is saved and restored; use a selector that matches the one that scrolls.`)
+      }
+    }
     if (element)
       containers.push({ id: selector, element })
   }
