@@ -47,14 +47,11 @@ export interface RestoreScrollOptions {
   signal?: AbortSignal
   /**
    * Keep re-applying positions while content loads, for at most this many milliseconds.
-   * It stops earlier once every position holds and the content stops growing, or on user input.
+   * It stops earlier on user input, and leaves a container alone once something else scrolls it.
    * `false` applies once.
    */
   settle?: number | false
 }
-
-/** How long positions must hold, with content no longer growing, before a restore ends. */
-const SETTLED_AFTER = 200
 
 /**
  * Scrolls each container to its position in `snapshot`, or to the top when it has none.
@@ -70,7 +67,7 @@ export function restoreScroll(
   const target = hash ? document.getElementById(hash.slice(1)) : null
   const targets = containers
     .filter(({ element }) => !target || !element.contains(target))
-    .map(({ id, element }) => ({ element, position: snapshot?.[id] ?? { left: 0, top: 0 }, height: element.scrollHeight }))
+    .map(({ id, element }) => ({ element, position: snapshot?.[id] ?? { left: 0, top: 0 }, height: element.scrollHeight, released: false }))
 
   for (const { element, position } of targets)
     element.scrollTo(position)
@@ -79,9 +76,8 @@ export function restoreScroll(
   if (settle === false || signal?.aborted || targets.every(({ position }) => position.top === 0 && position.left === 0))
     return
 
-  // Content that loads above a restored position can move it without changing the height, after the
-  // positions held long enough to stop re-applying them. The browser's scroll anchoring would follow
-  // that content, so it stays off for the whole settle time, until input or a newer navigation.
+  // Content that loads above a restored position can move it without changing the height. The
+  // browser's scroll anchoring would follow that content, so it stays off while the restore settles.
   const anchoring = new AbortController()
   signal?.addEventListener('abort', () => anchoring.abort(), { signal: anchoring.signal })
   abortOnInput(anchoring)
@@ -100,23 +96,24 @@ export function restoreScroll(
   anchoring.signal.addEventListener('abort', stop, { signal: done.signal })
 
   const start = performance.now()
-  let heldSince = start
   const frame = (now: number) => {
     if (done.signal.aborted)
       return
-    let held = true
     for (const item of targets) {
       const { element, position } = item
-      // late content moved it or made the page taller
-      if (Math.abs(element.scrollTop - position.top) >= 1 || Math.abs(element.scrollLeft - position.left) >= 1 || element.scrollHeight !== item.height) {
-        held = false
-        item.height = element.scrollHeight
+      const resized = element.scrollHeight !== item.height
+      item.height = element.scrollHeight
+      if (item.released || reached(element, position))
+        continue
+      // A position that held can still move later: a section shows a shorter loading state and the
+      // container can't scroll that far, or content above changes height. Any other move came from the
+      // app or the user, so the container is theirs from then on.
+      if (resized || clamped(element, position))
         element.scrollTo(position)
-      }
+      else
+        item.released = true
     }
-    if (!held)
-      heldSince = now
-    if (now - heldSince >= SETTLED_AFTER || now - start >= settle)
+    if (now - start >= settle || targets.every(({ released }) => released))
       return stop()
     requestAnimationFrame(frame)
   }
@@ -163,4 +160,14 @@ export function createScrollStore(storageKey: string, limit = 100): ScrollStore 
       }
     },
   }
+}
+
+function reached(element: Element, { left, top }: ScrollPosition) {
+  return Math.abs(element.scrollTop - top) < 1 && Math.abs(element.scrollLeft - left) < 1
+}
+
+/** The container scrolled as far as its content allows, short of the position. */
+function clamped(element: Element, { left, top }: ScrollPosition) {
+  return (element.scrollTop < top - 1 && element.scrollTop >= element.scrollHeight - element.clientHeight - 1)
+    || (element.scrollLeft < left - 1 && element.scrollLeft >= element.scrollWidth - element.clientWidth - 1)
 }
