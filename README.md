@@ -216,6 +216,7 @@ Vue Router's and Nuxt's default `scrollBehavior` handle `window` only.
 - Horizontal scrolling inside grids
 - Virtual lists that need an item index instead of a pixel offset
 - Restoring before hydration on reload. The position comes back once the app has mounted.
+- Telling some app scrolls from a loading state. A section that swaps in a shorter state and back between two frames moves the position toward the top, and the restore puts it back. If your app scrolls by itself during `settle`, with no user input first, in the same task as a class or text change, the restore takes that move for the same thing and puts the saved position back. A scroll that follows a click, touch, wheel or key isn't affected: the input ends the restore. To avoid it, scroll after `settle` or set `settle: false`.
 
 ## Develop
 
