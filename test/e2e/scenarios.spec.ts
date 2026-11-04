@@ -216,6 +216,23 @@ test('4. a layout change after the settle time is left alone', async ({ page }) 
   await expectTop(page, 0)
 })
 
+for (const growth of [true, false]) {
+  test(`4. content swapped for a shorter state and back between two frames restores${growth ? ' as it grows' : ''}`, async ({ page }) => {
+    await restoreLong(page)
+    // A section swaps in a loading state and back in one task. Reading the layout in between clamps
+    // the position, as a grid that measures itself does, and no frame shows the shorter page.
+    await page.locator(root).evaluate((el, grow) => {
+      const rows = el.querySelector<HTMLElement>('.rows')!
+      rows.style.display = 'none'
+      void el.scrollTop
+      rows.style.display = ''
+      if (grow)
+        rows.insertAdjacentHTML('afterend', '<div style="height: 400px"></div>')
+    }, growth)
+    await expectTop(page, 1200)
+  })
+}
+
 test('5. async page restores after Suspense renders', async ({ page }) => {
   await open(page, '/async', 'Async')
   await scrollTo(page, 1700)

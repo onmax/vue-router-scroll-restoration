@@ -85,6 +85,7 @@ export function restoreScroll(
         position,
         applied: { left: element.scrollLeft, top: element.scrollTop },
         height: element.scrollHeight,
+        shortened: false,
         released: false,
       }
     })
@@ -116,12 +117,17 @@ export function restoreScroll(
     for (const item of settling) {
       const { element, position } = item
       const resized = element.scrollHeight !== item.height
+      const shortened = item.shortened
       item.height = element.scrollHeight
+      item.shortened = false
       if (item.released || reached(element, position))
         continue
-      // Growth can make a clamped position reachable. A move away from the last applied position
-      // that isn't clamped belongs to the app or the user, even when the height changed too.
-      if ((resized && reached(element, item.applied)) || clamped(element, position)) {
+      // Growth can make a clamped position reachable. Content that is swapped for a shorter loading
+      // state and back between two checks leaves the position clamped toward the start without a
+      // clamp to see, and only a removal or an attribute or text change can shorten content. Any
+      // other move away from the last applied position belongs to the app or the user.
+      const back = element.scrollTop < item.applied.top - 1 || element.scrollLeft < item.applied.left - 1
+      if ((resized && reached(element, item.applied)) || (shortened && back) || clamped(element, position)) {
         element.scrollTo(position)
         item.applied = { left: element.scrollLeft, top: element.scrollTop }
       }
@@ -139,11 +145,17 @@ export function restoreScroll(
   // pages; content that grows inside them resizes them too.
   const resizes = new ResizeObserver(schedule)
   const mutations = new MutationObserver((records) => {
-    for (const { target: parent, addedNodes } of records) {
-      if (settling.some(({ element }) => element === parent)) {
-        for (const node of addedNodes) {
-          if (node instanceof Element)
-            resizes.observe(node)
+    for (const { type, target: parent, addedNodes, removedNodes } of records) {
+      for (const item of settling) {
+        if (!item.element.contains(parent))
+          continue
+        if (type !== 'childList' || removedNodes.length)
+          item.shortened = true
+        if (item.element === parent) {
+          for (const node of addedNodes) {
+            if (node instanceof Element)
+              resizes.observe(node)
+          }
         }
       }
     }
