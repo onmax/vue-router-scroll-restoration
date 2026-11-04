@@ -8,6 +8,7 @@ Scroll restoration for Vue Router and Nuxt on any scroll container. [SPEC.md](./
 - `src/runtime/index.ts`: `setupScrollRestoration` for Vue Router.
 - `src/runtime/nuxt/` and `src/module.ts`: the Nuxt module.
 - `fixtures/`: pages shared by `playground/` (Nuxt) and `playground-vue/` (Vite + Vue Router).
+- `playground-experimental/`: the same pages restored with `vue-router/experimental` only, for [EXPERIMENTAL.md](./EXPERIMENTAL.md). `pnpm build:experimental && pnpm test:experimental`; CI doesn't run it.
 
 ## Checks
 
