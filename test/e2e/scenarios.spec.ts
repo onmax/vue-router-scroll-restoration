@@ -140,6 +140,14 @@ test('1. push starts at the top', async ({ page }) => {
   await expectTop(page, 0)
 })
 
+test('1. a link to a page visited before starts at the top', async ({ page }) => {
+  await open(page, '/long', 'Long')
+  await scrollTo(page, 1200)
+  await navigate(page, 'other', 'Other')
+  await navigate(page, 'long', 'Long')
+  await expectTop(page, 0)
+})
+
 test('2. back restores', async ({ page }) => {
   await open(page, '/long', 'Long')
   await scrollTo(page, 1200)

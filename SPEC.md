@@ -29,7 +29,7 @@ A Nuxt 4 dashboard built with Nuxt UI. The layout's `<div data-scroll-root class
 
 Each numbered scenario below is one Playwright test in the playground. A scenario is done when its test passes in Chromium and WebKit.
 
-1. **Push starts at the top.** Scroll the container, click a link to another page: the new page starts at `scrollTop` 0.
+1. **Push starts at the top.** Scroll the container, click a link to another page: the new page starts at `scrollTop` 0, also when you visited it before.
 2. **Back restores.** Then press Back: the first page comes back at its old position.
 3. **Forward restores.** Then press Forward: the second page comes back at the position it had when you left it with Back.
 4. **Late content.** The page's table renders 300 ms and again 1500 ms after the route resolves. Back still lands on the saved position (it may jump, then settle).
@@ -61,7 +61,7 @@ Not built yet, from the research (TanStack Router, React Router, SvelteKit): tra
 
 ## Lab result
 
-`vue-router/experimental` (5.4) was ruled out by reading its source: positions are keyed by `to.path + to.hash`, `restore(entry, to)` can't tell a push from a traversal, it restores once, and `onRouteRendered` falls back to `afterEach` outside a `<RouterView>`, which is where a Nuxt layout sits. The package keeps its API close (capture and restore per container, `scrollToTop`) so it could move onto it if those gaps close upstream.
+`vue-router/experimental` (5.4) runs the same scenarios in `playground-experimental/` ([EXPERIMENTAL.md](./EXPERIMENTAL.md)). Used as documented, it fails a link back to a page visited before, every late-content test, and input while the page loads. Passing all of them on its public API takes about 80 lines: a key per history entry, telling a link from Back/Forward, and re-applying the position while content loads, which is most of this package's core again. The package keeps its API close (capture and restore per container, `scrollToTop`) so it could move onto it if those gaps close upstream.
 
 `test/e2e/scenarios.spec.ts` covers the 17 scenarios, written from this spec by a separate tester before it read `src/`. All pass on the Nuxt and Vue playgrounds in Chromium and WebKit (scenario 16 is Nuxt only, and scenario 17 only has a transition in Nuxt). The one failure along the way was a fixture rendering a nested Nuxt page with `<RouterView>`, which never fires `page:loading:end`; real apps use `<NuxtPage>`.
 
