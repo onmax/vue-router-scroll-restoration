@@ -4,8 +4,8 @@ Can the scenarios in [SPEC.md](./SPEC.md) pass with only the scroll restoration 
 
 `playground-experimental/` runs the same fixture pages as the other playgrounds. It installs `ScrollRestoration` and calls `useScrollRestoration()` from [`ScrollRestorer.vue`](./playground-experimental/ScrollRestorer.vue), a component rendered inside the `<RouterView>` slot. Under a `<RouterView>`, `onRouteRendered` waits until the page has rendered, Suspense included. No code from `src/` is imported. It builds twice:
 
-- **plain**: `useScrollRestoration()` as documented, with `capture`/`restore` for the window, `[data-scroll-root]` and every `[data-scroll-restoration-id]` element, the default `path + hash` key, and `meta.scrollKey`/`meta.scrollToTop` read in `key` and `restore`.
-- **workarounds**: the same, plus the code it took to make every scenario pass, still on the public API only.
+- **plain.** `useScrollRestoration()` as documented, with `capture`/`restore` for the window, `[data-scroll-root]` and every `[data-scroll-restoration-id]` element, the default `path + hash` key, and `meta.scrollKey`/`meta.scrollToTop` read in `key` and `restore`.
+- **workarounds.** The same, plus the code it took to make every scenario pass, still on the public API only.
 
 ```sh
 pnpm build:experimental
