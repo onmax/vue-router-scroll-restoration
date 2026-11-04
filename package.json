@@ -47,11 +47,13 @@
     "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxi prepare playground",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "typecheck": "vue-tsc --noEmit && vue-tsc --noEmit -p playground && vue-tsc --noEmit -p playground-vue",
+    "typecheck": "vue-tsc --noEmit && vue-tsc --noEmit -p playground && vue-tsc --noEmit -p playground-vue && vue-tsc --noEmit -p playground-experimental",
     "test:e2e": "playwright test",
     "check:doctor": "vite-doctor . --max-warnings 0 --format text",
     "validate": "pnpm build && publint --strict",
-    "build:playgrounds": "nuxi build playground && vite build playground-vue"
+    "build:playgrounds": "nuxi build playground && vite build playground-vue",
+    "build:experimental": "vite build playground-experimental --mode plain && vite build playground-experimental --mode workarounds",
+    "test:experimental": "playwright test -c playwright.experimental.config.ts"
   },
   "peerDependencies": {
     "vue": "^3.5.0",
