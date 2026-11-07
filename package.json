@@ -1,7 +1,7 @@
 {
   "name": "vue-router-scroll-restoration",
   "type": "module",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "packageManager": "pnpm@12.15.0",
   "description": "Scroll restoration for Vue Router and Nuxt on any scroll container",
   "license": "MIT",
