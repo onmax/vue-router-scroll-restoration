@@ -25,8 +25,11 @@ export default defineNuxtModule<ModuleOptions>({
     containers: ['window'],
     settle: 3000,
   },
-  setup(options, nuxt) {
+  async setup(options, nuxt) {
     const resolver = createResolver(import.meta.url)
+    // Nuxt reads this file to see whether it defines `routes`. A path without an extension can't be
+    // read, so Nuxt assumes it does and turns off `experimental.early404`.
+    const routerOptions = await resolver.resolvePath('./runtime/nuxt/router.options')
 
     const { dst } = addTemplate({
       filename: 'scroll-restoration-options.mjs',
@@ -41,7 +44,7 @@ export default defineNuxtModule<ModuleOptions>({
     // Right after Nuxt's built-in options, so an app's own `router.options` still wins
     nuxt.hook('pages:routerOptions', ({ files }) => {
       const index = files.findIndex(file => !file.optional)
-      files.splice(index === -1 ? files.length : index, 0, { path: resolver.resolve('./runtime/nuxt/router.options') })
+      files.splice(index === -1 ? files.length : index, 0, { path: routerOptions })
     })
     addPlugin({ src: resolver.resolve('./runtime/nuxt/plugin.client'), mode: 'client' })
   },
